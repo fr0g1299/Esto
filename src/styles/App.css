@@ -1,0 +1,23 @@
+.create-tab-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -30px; /* Pulls the button above the tab bar */
+  z-index: 10; /* Keeps it on top */
+}
+
+.create-tab-button ion-icon {
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  /* padding: 15px; */
+  font-size: 24px;
+  width: 60px;
+  height: 120px;
+}
+
+.create-tab-button ion-label {
+  margin-top: 5px;
+  font-size: 12px;
+}
