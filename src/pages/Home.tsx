@@ -13,8 +13,9 @@ import {
   IonCardContent,
   IonBadge,
   IonImg,
+  IonButtons,
 } from "@ionic/react";
-import { notificationsOutline } from "ionicons/icons";
+import { notificationsOutline, add } from "ionicons/icons";
 import "../styles/Home.css";
 import { useHistory } from "react-router";
 
@@ -64,8 +65,26 @@ interface TrendingProperty {
   views: number;
 }
 
+const fetchTrendingProperties = async () => {
+  const q = query(collection(db, "trending"), orderBy("views", "desc"));
+  const propertiesSnapshot = await getDocs(q);
+  return propertiesSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<TrendingProperty, "id">),
+  }));
+};
+
+const fetchClosestProperties = async () => {
+  const propertiesSnapshot = await getDocs(collection(db, "properties"));
+  return propertiesSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<ClosestProperty, "id">),
+  }));
+};
+
 const Home: React.FC = () => {
   const history = useHistory();
+  // const [loading, setLoading] = useState(true);
   const [trendingProperties, setTrendingProperties] = useState<
     TrendingProperty[]
   >([]);
@@ -74,41 +93,40 @@ const Home: React.FC = () => {
   );
 
   useEffect(() => {
-    const fetchTrendingProperties = async () => {
-      const q = query(collection(db, "trending"), orderBy("views", "desc"));
-      const propertiesSnapshot = await getDocs(q);
-      const data: TrendingProperty[] = propertiesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<TrendingProperty, "id">),
-      }));
-      console.log(data);
-      setTrendingProperties(data);
+    const fetchData = async () => {
+      try {
+        const trending = await fetchTrendingProperties();
+        const closest = await fetchClosestProperties();
+        setTrendingProperties(trending);
+        setClosestProperties(closest);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+      }
+      // finally {
+      //   setLoading(false);
+      // }
     };
 
-    const fetchClosestProperties = async () => {
-      const propertiesSnapshot = await getDocs(collection(db, "properties"));
-      const data: ClosestProperty[] = propertiesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<ClosestProperty, "id">),
-      }));
-      console.log(data);
-      setClosestProperties(data);
-    };
-
-    fetchClosestProperties();
-    fetchTrendingProperties();
+    fetchData();
   }, []);
 
+  // if (loading) {
+  //   return (
+  //     <IonContent fullscreen className="ion-padding">
+  //       Loading...
+  //     </IonContent>
+  //   );
+  // } else {
   return (
     <IonPage>
       <IonContent fullscreen>
         <IonGrid>
-          <IonRow className="ion-align-items-start ion-justify-content-between ion-padding-horizontal">
+          <IonRow className="ion-align-items-center ion-justify-content-between ion-padding-horizontal">
             <IonCol size="auto">
               <IonText>
                 <h2 className="heading-text">
-                  Najdi <strong>Nemovitost</strong> <br />
-                  Přímo pro Tebe
+                  Nejvíce <strong>prohlížené</strong> <br />
+                  Nemovitosti
                 </h2>
               </IonText>
             </IonCol>
@@ -116,21 +134,59 @@ const Home: React.FC = () => {
             <IonCol size="auto">
               <IonButton
                 fill="clear"
-                className="notification-btn"
+                className="create-btn icon-shadow"
+                onClick={() => history.push("/create")}
+              >
+                <IonIcon icon={add} size="large" />
+              </IonButton>
+              <IonButton
+                fill="clear"
+                className="notification-btn icon-shadow"
                 onClick={() => history.push("/notifications")}
               >
-                <IonBadge color="danger" slot="" className="notification-badge">
-                  0
-                </IonBadge>
-                <IonIcon icon={notificationsOutline} size="large" />
+                <div className="notification-icon-wrapper">
+                  <IonBadge
+                    color="danger"
+                    slot=""
+                    className="notification-badge"
+                  >
+                    0
+                  </IonBadge>
+                  <IonIcon icon={notificationsOutline} size="large" />
+                </div>
               </IonButton>
             </IonCol>
           </IonRow>
         </IonGrid>
 
+        <IonButtons slot="secondary">
+          <IonButton
+            fill="clear"
+            className="create-btn"
+            onClick={() => history.push("/create")}
+          >
+            <IonIcon icon={add} size="large" />
+          </IonButton>
+        </IonButtons>
+        <IonButtons slot="primary">
+          <IonButton
+            fill="clear"
+            className="notification-btn"
+            onClick={() => history.push("/notifications")}
+          >
+            <IonBadge color="danger" slot="" className="notification-badge">
+              0
+            </IonBadge>
+            <IonIcon icon={notificationsOutline} size="large" />
+          </IonButton>
+        </IonButtons>
+
         <Swiper {...slideOpts}>
           {trendingProperties.map((trending) => (
-            <SwiperSlide key={trending.id}>
+            <SwiperSlide
+              key={trending.id}
+              onClick={() => history.push(`/details/${trending.propertyId}`)}
+            >
               <IonCard className="property-card-swiper">
                 <IonImg src={trending.imageUrl} alt={trending.title} />
                 <IonCardHeader>
@@ -145,8 +201,18 @@ const Home: React.FC = () => {
           ))}
         </Swiper>
 
+        <IonText>
+          <h2 className="heading-text ion-align-items-start ion-justify-content-between ion-padding-horizontal">
+            Nemovitosti, které jsou <br />
+            ti <strong>nejblíže</strong>
+          </h2>
+        </IonText>
         {closestProperties.map((property) => (
-          <IonCard key={property.id} className="property-card-list">
+          <IonCard
+            key={property.id}
+            className="property-card-list"
+            onClick={() => history.push(`/details/${property.id}`)}
+          >
             <IonImg
               src={property.imageUrl}
               alt={property.title}
@@ -165,5 +231,6 @@ const Home: React.FC = () => {
     </IonPage>
   );
 };
+// };
 
 export default Home;
