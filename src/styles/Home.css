@@ -20,6 +20,10 @@
   --padding-end: 5px;
 }
 
+.no-ripple {
+  --ripple-color: transparent;
+}
+
 ion-button {
   --color: primary;
 }
@@ -57,5 +61,5 @@ ion-button {
 }
 
 .icon-shadow {
-  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
 }

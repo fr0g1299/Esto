@@ -1,0 +1,9 @@
+.tabbar-hidden {
+  transform: translateY(100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+.tabbar-shown {
+  transform: translateY(0);
+  transition: transform 0.3s ease-in-out;
+}

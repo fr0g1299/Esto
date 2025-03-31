@@ -15,9 +15,11 @@ import {
   IonImg,
   IonButtons,
 } from "@ionic/react";
+import { useEffect, useState } from "react";
 import { notificationsOutline, add } from "ionicons/icons";
 import "../styles/Home.css";
 import { useHistory } from "react-router";
+import { useTabBarScrollEffect } from "../hooks/HideTabBar";
 
 import { db } from "../firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
@@ -26,8 +28,6 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
-
-import { useEffect, useState } from "react";
 
 const slideOpts = {
   slidesPerView: 1.2,
@@ -84,6 +84,7 @@ const fetchClosestProperties = async () => {
 
 const Home: React.FC = () => {
   const history = useHistory();
+  useTabBarScrollEffect();
   // const [loading, setLoading] = useState(true);
   const [trendingProperties, setTrendingProperties] = useState<
     TrendingProperty[]
@@ -119,7 +120,7 @@ const Home: React.FC = () => {
   // } else {
   return (
     <IonPage>
-      <IonContent fullscreen>
+      <IonContent fullscreen scrollEvents>
         <IonGrid>
           <IonRow className="ion-align-items-center ion-justify-content-between ion-padding-horizontal">
             <IonCol size="auto">
@@ -134,14 +135,14 @@ const Home: React.FC = () => {
             <IonCol size="auto">
               <IonButton
                 fill="clear"
-                className="create-btn icon-shadow"
+                className="create-btn icon-shadow no-ripple"
                 onClick={() => history.push("/create")}
               >
                 <IonIcon icon={add} size="large" />
               </IonButton>
               <IonButton
                 fill="clear"
-                className="notification-btn icon-shadow"
+                className="notification-btn icon-shadow no-ripple"
                 onClick={() => history.push("/notifications")}
               >
                 <div className="notification-icon-wrapper">
