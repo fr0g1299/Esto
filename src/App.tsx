@@ -12,7 +12,7 @@ import {
 import { IonReactRouter } from "@ionic/react-router";
 import Home from "./pages/Home";
 import SearchMap from "./pages/SearchMap";
-import Create from "./pages/Create";
+import Search from "./pages/Search";
 import Collection from "./pages/Collection";
 import Profile from "./pages/Profile";
 import PropertyDetails from "./pages/PropertyDetails";
@@ -63,7 +63,7 @@ const App: React.FC = () => {
           <IonRouterOutlet>
             <Route exact path="/home" component={Home} />
             <Route exact path="/searchmap" component={SearchMap} />
-            <Route exact path="/create" component={Create} />
+            <Route exact path="/search" component={Search} />
             <Route exact path="/collections" component={Collection} />
             <Route exact path="/profile" component={Profile} />
             <Route exact path="/notifications" component={Notifications} />
@@ -81,7 +81,7 @@ const App: React.FC = () => {
               <IonIcon icon={mapOutline} />
               <IonLabel>Mapa</IonLabel>
             </IonTabButton>
-            <IonTabButton tab="create" href="/create" className="no-ripple">
+            <IonTabButton tab="search" href="/search" className="no-ripple">
               <div className="place">
                 <RippleButton
                   onClick={() => {

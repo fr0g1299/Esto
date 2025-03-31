@@ -9,3 +9,7 @@
   height: auto;
   margin-top: 5px;
 }
+
+.no-scrollbar {
+  --overflow: hidden;
+}
