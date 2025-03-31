@@ -17,6 +17,7 @@ import Collection from "./pages/Collection";
 import Profile from "./pages/Profile";
 import PropertyDetails from "./pages/PropertyDetails";
 import Notifications from "./pages/Notifications";
+import Create from "./pages/Create";
 import { home, search, albums, person, mapOutline } from "ionicons/icons";
 import RippleButton from "./components/ui/RippleButton";
 
@@ -49,6 +50,7 @@ import "@ionic/react/css/palettes/dark.class.css";
 
 /* Theme variables */
 import "./theme/variables.css";
+import "./styles/global.css";
 import "./styles/App.css";
 
 setupIonicReact();
@@ -68,6 +70,7 @@ const App: React.FC = () => {
             <Route exact path="/profile" component={Profile} />
             <Route exact path="/notifications" component={Notifications} />
             <Route exact path="/details/:id" component={PropertyDetails} />
+            <Route exact path="/create" component={Create} />
             <Route exact path="/" render={() => <Redirect to="/home" />} />
           </IonRouterOutlet>
 
@@ -88,6 +91,7 @@ const App: React.FC = () => {
                     history.push("/search");
                   }}
                   icon={<IonIcon icon={search} className="text-2xl" />}
+                  className="custom-ripple-btn"
                 />
               </div>
               <IonLabel className="search-label">Hledat</IonLabel>

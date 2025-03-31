@@ -56,3 +56,20 @@ ion-tab-bar {
   position: absolute;
   bottom: 3px;
 }
+
+.custom-ripple-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  background-color: var(--ion-background-color, #fff);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  font-size: 26px;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: pointer;
+  overflow: visible;
+}
