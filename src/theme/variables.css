@@ -1,6 +1,14 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
 
-:root {
-  --ion-color-primary: #fd542d;
+@media (prefers-color-scheme: light) {
+  body {
+    --ion-color-primary: #fd542d;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    --ion-color-primary: #fd542d;
+  }
 }

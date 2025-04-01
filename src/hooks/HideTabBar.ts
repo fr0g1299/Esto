@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 
 export const useTabBarScrollEffect = () => {
   const lastScroll = useRef(0);
   const accumulated = useRef(0);
-  const justShown = useRef(false);
   const hidden = useRef(false);
+  const location = useLocation();
 
   useEffect(() => {
     const content = document.querySelector("ion-content");
@@ -51,19 +52,22 @@ export const useTabBarScrollEffect = () => {
         e.stopPropagation(); // Stop click from propagating
 
         toggleTabBar(true); // Show the tab bar
-        justShown.current = true;
-
-        // Reset justShown flag after short delay to avoid instant hide
-        setTimeout(() => (justShown.current = false), 300);
       }
+    };
+
+    // Automatically show the tab bar when the route changes
+    const handleRouteChange = () => {
+      toggleTabBar(true); // Show the tab bar
     };
 
     content.addEventListener("ionScroll", handleScroll);
     tabBar.addEventListener("click", handleClick, true);
 
+    // Listen for route changes
+    handleRouteChange(); // Ensure tab bar is visible on initial load
     return () => {
       content.removeEventListener("ionScroll", handleScroll);
       tabBar.removeEventListener("click", handleClick, true);
     };
-  }, []);
+  }, [location]);
 };
