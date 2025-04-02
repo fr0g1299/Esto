@@ -1,7 +1,7 @@
 import { IonContent, IonPage } from "@ionic/react";
 import React from "react";
 import { db } from "../firebase";
-import { getDoc, doc } from "firebase/firestore";
+import { getDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useStorage } from "../hooks/useStorage";
@@ -11,6 +11,7 @@ interface PropertyDetailsProps {
   title: string;
   price: number;
   imageUrl: string;
+  views: number;
 }
 
 const fetchDocument = async (id: string) => {
@@ -27,6 +28,17 @@ const fetchDocument = async (id: string) => {
   }
 };
 
+const incrementViews = async (id: string) => {
+  try {
+    const docRef = doc(db, "properties", id);
+    await updateDoc(docRef, {
+      views: increment(1),
+    });
+  } catch (error) {
+    console.error("Failed to increment views:", error);
+  }
+};
+
 const PropertyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [propertyDetails, setPropertyDetails] =
@@ -39,6 +51,7 @@ const PropertyDetails: React.FC = () => {
     fetchDocument(id).then((data) => {
       if (data) {
         setPropertyDetails(data);
+        incrementViews(id);
       }
     });
     console.log("Property ID:", id);
