@@ -13,3 +13,11 @@
 .no-scrollbar {
   --overflow: hidden;
 }
+
+.leaflet-control-attribution {
+  filter: invert(90%);
+
+  svg {
+    filter: invert(1);
+  }
+}

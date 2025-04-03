@@ -1,14 +1,41 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
 
-@media (prefers-color-scheme: light) {
-  body {
-    --ion-color-primary: #fd542d;
-  }
+:root {
+  --ion-color-primary: #fd542d;
+  --ion-color-primary-rgb: 253, 84, 45;
+  --ion-color-primary-contrast: #000000;
+  --ion-color-primary-contrast-rgb: 0, 0, 0;
+  --ion-color-primary-shade: #df4a28;
+  --ion-color-primary-tint: #fd6542;
+
+  /* --ion-background-color-step-50: #fd5d38;
+  --ion-background-color-step-100: #fd6542;
+  --ion-background-color-step-150: #fd6e4d;
+  --ion-background-color-step-200: #fd7657;
+  --ion-background-color-step-250: #fe7f62;
+  --ion-background-color-step-300: #fe876c;
+  --ion-background-color-step-350: #fe9077;
+  --ion-background-color-step-400: #fe9881;
+  --ion-background-color-step-450: #fea18c;
+  --ion-background-color-step-500: #feaa96;
+  --ion-background-color-step-550: #feb2a1;
+  --ion-background-color-step-600: #febbab;
+  --ion-background-color-step-650: #fec3b6;
+  --ion-background-color-step-700: #feccc0;
+  --ion-background-color-step-750: #ffd4cb;
+  --ion-background-color-step-800: #ffddd5;
+  --ion-background-color-step-850: #ffe5e0;
+  --ion-background-color-step-900: #ffeeea;
+  --ion-background-color-step-950: #fff6f5; */
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    --ion-color-primary: #fd542d;
+.ion-palette-dark {
+  .leaflet-bar a {
+    background-color: #4d4d4d;
+  }
+
+  .leaflet-control-zoom-in {
+    border-bottom: 2px solid #292929;
   }
 }

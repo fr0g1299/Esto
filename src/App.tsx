@@ -10,6 +10,8 @@ import {
   IonLabel,
 } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
+import { useEffect } from "react";
+import { useStorage } from "./hooks/useStorage";
 import Home from "./pages/Home";
 import SearchMap from "./pages/SearchMap";
 import Search from "./pages/Search";
@@ -18,6 +20,7 @@ import Profile from "./pages/Profile";
 import PropertyDetails from "./pages/PropertyDetails";
 import Notifications from "./pages/Notifications";
 import Create from "./pages/Create";
+import SearchResults from "./pages/SearchResults";
 import { home, search, albums, person, mapOutline } from "ionicons/icons";
 import RippleButton from "./components/ui/RippleButton";
 
@@ -44,7 +47,7 @@ import "@ionic/react/css/display.css";
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
-/* import '@ionic/react/css/palettes/dark.always.css'; */
+// import '@ionic/react/css/palettes/dark.always.css';
 import "@ionic/react/css/palettes/dark.class.css";
 // import "@ionic/react/css/palettes/dark.system.css";
 
@@ -57,6 +60,18 @@ setupIonicReact();
 
 const App: React.FC = () => {
   const history = useHistory();
+  const { get, ready } = useStorage();
+
+  useEffect(() => {
+    const applyInitialTheme = async () => {
+      if (!ready) return;
+      const storedTheme = await get("darkTheme");
+      const darkTheme = storedTheme !== null ? storedTheme : false;
+      document.documentElement.classList.toggle("ion-palette-dark", darkTheme);
+    };
+
+    applyInitialTheme();
+  }, [ready]);
 
   return (
     <IonApp>
@@ -71,6 +86,7 @@ const App: React.FC = () => {
             <Route exact path="/notifications" component={Notifications} />
             <Route exact path="/details/:id" component={PropertyDetails} />
             <Route exact path="/create" component={Create} />
+            <Route exact path="/results" component={SearchResults} />
             <Route exact path="/" render={() => <Redirect to="/home" />} />
           </IonRouterOutlet>
 

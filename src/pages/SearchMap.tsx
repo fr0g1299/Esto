@@ -1,11 +1,12 @@
 import React from "react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, useIonViewWillEnter } from "@ionic/react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/SearchMap.css";
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, GeoPoint, getDocs } from "firebase/firestore";
+import { useStorage } from "../hooks/useStorage";
 
 interface Property {
   id: string;
@@ -21,10 +22,12 @@ const ResizeMap = () => {
 };
 
 const SearchMap: React.FC = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
+  const { get, ready } = useStorage();
 
   useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchThemeAndProperties = async () => {
       const propertiesSnapshot = await getDocs(collection(db, "properties"));
       const data: Property[] = propertiesSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -34,8 +37,25 @@ const SearchMap: React.FC = () => {
       setProperties(data);
     };
 
-    fetchProperties();
+    fetchThemeAndProperties();
   }, []);
+
+  useIonViewWillEnter(() => {
+    const getDarkTheme = async () => {
+      console.log("useIonViewDidEnter...");
+      if (!ready) return;
+      const dark = await get("darkTheme");
+      console.log("Stored darkTheme value:", dark);
+      setIsDarkMode(dark);
+    };
+
+    getDarkTheme();
+  }, [ready, get]);
+
+  const darkTiles =
+    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  const lightTiles =
+    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
   return (
     <IonPage>
@@ -57,8 +77,9 @@ const SearchMap: React.FC = () => {
         >
           <ResizeMap />
           <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+            url={isDarkMode ? darkTiles : lightTiles}
+            className="map-tiles"
           />
 
           {properties.map((property) => (
