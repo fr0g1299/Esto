@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { notificationsOutline, add } from "ionicons/icons";
 import "../styles/Home.css";
 import { useHistory } from "react-router";
-import { useTabBarScrollEffect } from "../hooks/hideTabBar";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 
 import { db } from "../firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
