@@ -1,0 +1,9 @@
+.ion-chip-checked {
+  background-color: #ff9d6f;
+  border: 1px solid transparent;
+}
+
+.ion-chip-unchecked {
+  background-color: transparent;
+  border: 1px solid #3f3f3f;
+}
