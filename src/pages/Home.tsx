@@ -28,6 +28,8 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
+import { useAuth } from "../hooks/useAuth";
+import { auth } from "../firebase";
 
 const slideOpts = {
   slidesPerView: 1.2,
@@ -83,6 +85,7 @@ const fetchClosestProperties = async () => {
 };
 
 const Home: React.FC = () => {
+  const { user } = useAuth();
   const history = useHistory();
   useTabBarScrollEffect();
   // const [loading, setLoading] = useState(true);
@@ -111,6 +114,15 @@ const Home: React.FC = () => {
     fetchData();
   }, []);
 
+  const signOut = async () => {
+    try {
+      await auth.signOut();
+      console.log("User signed out");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   // if (loading) {
   //   return (
   //     <IonContent fullscreen className="ion-padding">
@@ -132,31 +144,33 @@ const Home: React.FC = () => {
               </IonText>
             </IonCol>
 
-            <IonCol size="auto">
-              <IonButton
-                fill="clear"
-                className="create-btn icon-shadow no-ripple"
-                onClick={() => history.push("/create")}
-              >
-                <IonIcon icon={add} size="large" />
-              </IonButton>
-              <IonButton
-                fill="clear"
-                className="notification-btn icon-shadow no-ripple"
-                onClick={() => history.push("/notifications")}
-              >
-                <div className="notification-icon-wrapper">
-                  <IonBadge
-                    color="danger"
-                    slot=""
-                    className="notification-badge"
-                  >
-                    0
-                  </IonBadge>
-                  <IonIcon icon={notificationsOutline} size="large" />
-                </div>
-              </IonButton>
-            </IonCol>
+            {user && (
+              <IonCol size="auto">
+                <IonButton
+                  fill="clear"
+                  className="create-btn icon-shadow no-ripple"
+                  onClick={() => history.push("/create")}
+                >
+                  <IonIcon icon={add} size="large" />
+                </IonButton>
+                <IonButton
+                  fill="clear"
+                  className="notification-btn icon-shadow no-ripple"
+                  onClick={() => history.push("/notifications")}
+                >
+                  <div className="notification-icon-wrapper">
+                    <IonBadge
+                      color="danger"
+                      slot=""
+                      className="notification-badge"
+                    >
+                      0
+                    </IonBadge>
+                    <IonIcon icon={notificationsOutline} size="large" />
+                  </div>
+                </IonButton>
+              </IonCol>
+            )}
           </IonRow>
         </IonGrid>
 
@@ -228,6 +242,25 @@ const Home: React.FC = () => {
             </IonCardContent>
           </IonCard>
         ))}
+
+        <IonButton
+          expand="block"
+          fill="outline"
+          className="ion-padding"
+          onClick={() => console.log(user)}
+        >
+          is logged in?
+        </IonButton>
+
+        <IonButton onClick={() => history.push("/login")}>
+          <IonText className="ion-padding">Login</IonText>
+        </IonButton>
+        <IonButton onClick={() => history.push("/register")}>
+          <IonText className="ion-padding">Register</IonText>
+        </IonButton>
+        <IonButton onClick={signOut}>
+          <IonText className="ion-padding">Sign Out</IonText>
+        </IonButton>
       </IonContent>
     </IonPage>
   );

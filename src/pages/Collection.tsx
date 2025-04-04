@@ -15,6 +15,7 @@ import {
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useStorage } from "../hooks/useStorage";
+import { useAuth } from "../hooks/useAuth";
 
 import "../styles/Collection.css";
 
@@ -26,6 +27,7 @@ interface HistoryProps {
 }
 
 const Collection: React.FC = () => {
+  const { user } = useAuth();
   const { get, ready } = useStorage();
   const [viewedHistory, setViewedHistory] = useState<HistoryProps[]>([]);
 
@@ -89,7 +91,7 @@ const Collection: React.FC = () => {
             </IonList>
           </IonAccordion>
 
-          <IonAccordion value="savedProperties" disabled>
+          <IonAccordion value="savedProperties" disabled={user === null}>
             <IonItem slot="header">
               <IonLabel>Oblíbené Inzeráty</IonLabel>
             </IonItem>
@@ -98,7 +100,7 @@ const Collection: React.FC = () => {
             </div>
           </IonAccordion>
 
-          <IonAccordion value="placeholder2" disabled>
+          <IonAccordion value="placeholder2" disabled={user === null}>
             <IonItem slot="header">
               <IonLabel>Uložené filtry</IonLabel>
             </IonItem>
