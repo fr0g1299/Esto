@@ -58,6 +58,7 @@ import "@ionic/react/css/palettes/dark.class.css";
 import "./theme/variables.css";
 import "./styles/global.css";
 import "./styles/App.css";
+import PrivateRoute from "./components/PrivateRoute";
 
 setupIonicReact();
 
@@ -87,12 +88,16 @@ const App: React.FC = () => {
               <Route exact path="/search" component={Search} />
               <Route exact path="/collections" component={Collection} />
               <Route exact path="/profile" component={Profile} />
-              <Route exact path="/notifications" component={Notifications} />
               <Route exact path="/details/:id" component={PropertyDetails} />
-              <Route exact path="/create" component={Create} />
               <Route exact path="/results" component={SearchResults} />
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
+              <PrivateRoute
+                exact
+                path="/notifications"
+                component={Notifications}
+              />
+              <PrivateRoute exact path="/create" component={Create} />
               <Route exact path="/" render={() => <Redirect to="/home" />} />
             </IonRouterOutlet>
 

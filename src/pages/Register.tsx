@@ -135,7 +135,7 @@ const Register: React.FC = () => {
       });
       console.log("User registered:", user);
 
-      history.push("/home");
+      history.push("/login");
     } catch (error) {
       console.error("Error registering user:", error);
     }
