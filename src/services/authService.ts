@@ -4,8 +4,9 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
+  // sendEmailVerification,
 } from "firebase/auth";
-import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export interface UserProfile {
   firstName: string;
@@ -38,6 +39,12 @@ export const registerUser = async (
     const user = userCredential.user;
     console.log("User registered:", user);
 
+    // For future use: Uncomment if you want to send a verification email
+    // if (user) {
+    //   await sendEmailVerification(user);
+    //   console.log("Verification email sent");
+    // }
+
     await updateProfile(user, {
       displayName: `${userData.firstName} ${userData.lastName}`,
     });
@@ -51,6 +58,8 @@ export const registerUser = async (
       pushNotificationsEnabled: true,
       userRole: "User",
     });
+
+    await signOut(auth);
 
     return user;
   } catch (error) {
@@ -69,11 +78,11 @@ export const loginUser = async (email: string, password: string) => {
     const user = userCredential.user;
     console.log("User logged in:", user);
 
-    if (user) {
-      await updateDoc(doc(db, "users", user.uid), {
-        lastSeen: serverTimestamp(),
-      });
-    }
+    // For future use: Uncomment if you want to check email verification
+    // if (user && !user.emailVerified) {
+    //   await auth.signOut();
+    //   throw new Error("Please verify your email before logging in.");
+    // }
 
     return user;
   } catch (error) {
