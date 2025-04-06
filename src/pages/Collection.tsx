@@ -12,6 +12,7 @@ import {
   useIonViewDidEnter,
   IonAccordion,
   IonAccordionGroup,
+  IonText,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useStorage } from "../hooks/useStorage";
@@ -109,6 +110,17 @@ const Collection: React.FC = () => {
             </div>
           </IonAccordion>
         </IonAccordionGroup>
+        {!user && (
+          <IonText
+            color="danger"
+            className="ion-padding ion-align-items-start ion-justify-content-between ion-padding-horizontal"
+          >
+            <p className="ion-align-items-start ion-justify-content-between ion-padding-horizontal">
+              Pro zobrazení oblíbených inzerátů nebo uložených filtrů se musíte
+              přihlásit.
+            </p>
+          </IonText>
+        )}
       </IonContent>
     </IonPage>
   );

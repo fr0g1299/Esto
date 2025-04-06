@@ -1,4 +1,4 @@
-import { Redirect, Route, useHistory } from "react-router-dom";
+import { Redirect, Route } from "react-router-dom";
 import {
   IonApp,
   IonRouterOutlet,
@@ -63,7 +63,6 @@ import PrivateRoute from "./components/PrivateRoute";
 setupIonicReact();
 
 const App: React.FC = () => {
-  const history = useHistory();
   const { get, ready } = useStorage();
 
   useEffect(() => {
@@ -114,9 +113,6 @@ const App: React.FC = () => {
               <IonTabButton tab="search" href="/search" className="no-ripple">
                 <div className="place">
                   <RippleButton
-                    onClick={() => {
-                      history.push("/search");
-                    }}
                     icon={<IonIcon icon={search} className="text-2xl" />}
                     className="custom-ripple-btn"
                   />

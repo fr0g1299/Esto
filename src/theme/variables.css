@@ -30,6 +30,10 @@ http://ionicframework.com/docs/theming/ */
   --ion-background-color-step-950: #fff6f5; */
 }
 
+ion-content {
+  --padding-bottom: 50px !important;
+}
+
 .ion-palette-dark {
   .leaflet-bar a {
     background-color: #4d4d4d;
