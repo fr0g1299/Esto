@@ -1,0 +1,14 @@
+.input-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.accordion-group {
+  margin-bottom: 25px;
+}
+
+ion-datetime {
+  width: 100%;
+  max-width: none;
+}
