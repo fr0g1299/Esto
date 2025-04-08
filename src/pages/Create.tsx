@@ -28,6 +28,7 @@ import { useMaskito } from "@maskito/react";
 import { maskitoTransform } from "@maskito/core";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import "../styles/Create.css";
+import ImageUploader from "../components/ui/ImageUploader";
 
 const Create: React.FC = () => {
   const { user } = useAuth();
@@ -35,7 +36,9 @@ const Create: React.FC = () => {
 
   // States for property details, that can be filtered
   const [title, setTitle] = useState("");
-  const [price, setPrice] = useState(0);
+  const [priceString, setPrice] = useState("");
+  const price = Number(priceString || "0");
+
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState<
@@ -59,13 +62,18 @@ const Create: React.FC = () => {
   const [yearBuilt, setYearBuilt] = useState(0);
   const [floors, setFloors] = useState(1);
   const [bathroomCount, setBathroomCount] = useState(1);
-  const [gardenSize, setGardenSize] = useState(0);
-  const [propertySize, setPropertySize] = useState(0);
+  const [gardenSizeString, setGardenSize] = useState("");
+  const gardenSize = Number(gardenSizeString || "0");
+  const [propertySizeString, setPropertySize] = useState("");
+  const propertySize = Number(propertySizeString || "0");
   const [parkingSpots, setParkingSpots] = useState(0);
   const [rooms, setRooms] = useState(1);
   const [description, setDescription] = useState("");
   const [kitchenEquipment, setKitchenEquipment] = useState<string[]>([]);
   const [heatingType, setHeatingType] = useState("");
+
+  // State for image upload
+  const [images, setImages] = useState<File[]>([]);
 
   // Maskito for postal code
   const postalCodeMaskOptions: MaskitoOptions = {
@@ -77,8 +85,6 @@ const Create: React.FC = () => {
   const [postalCode, setPostalCode] = useState(
     maskitoTransform("", postalCodeMaskOptions)
   );
-
-  // const [images, setImages] = useState<File[]>([]);
 
   const stepperInputs: {
     label: string;
@@ -163,11 +169,16 @@ const Create: React.FC = () => {
   const handleCreate = async () => {
     if (!user) return;
 
+    if (images.length < 3) {
+      alert("You must select at least 3 images."); // TODO: Alert
+      return;
+    }
+
     try {
       const { latitude, longitude } = await geocodeAddress(address);
 
       if (!garden) {
-        setGardenSize(0);
+        setGardenSize("");
       }
 
       const propertyId = await createProperty(
@@ -180,7 +191,6 @@ const Create: React.FC = () => {
           city,
           type,
           disposition,
-          imageUrl: "sd",
           geolocation: new GeoPoint(latitude, longitude),
           garage,
           elevator,
@@ -207,9 +217,7 @@ const Create: React.FC = () => {
           heatingType,
           videoUrl: "https://youtube.com/...",
         },
-        [
-          // images
-        ]
+        images
       );
 
       console.log("Created property with ID:", propertyId);
@@ -225,7 +233,8 @@ const Create: React.FC = () => {
           <FormInput label="Název inzerátu" value={title} onChange={setTitle} />
           <FormInput
             label="Cena (Kč)"
-            onChange={(val: string) => setPrice(parseInt(val))}
+            value={priceString}
+            onChange={setPrice}
             type="number"
           />
           <FormInput label="Adresa" value={address} onChange={setAddress} />
@@ -338,13 +347,15 @@ const Create: React.FC = () => {
           />
           <FormInput
             label="Velikost zahrady (m²)"
-            onChange={(val: string) => setGardenSize(parseInt(val))}
+            value={gardenSizeString}
+            onChange={setGardenSize}
             type="number"
             disabled={!garden}
           />
           <FormInput
             label="Velikost pozemku (m²)"
-            onChange={(val: string) => setPropertySize(parseInt(val))}
+            value={propertySizeString}
+            onChange={setPropertySize}
             type="number"
           />
         </IonList>
@@ -377,6 +388,12 @@ const Create: React.FC = () => {
             </IonList>
           </IonAccordion>
         </IonAccordionGroup>
+
+        <IonItem lines="none">
+          <IonLabel>Nahrát obrázky (min 3, max 20)</IonLabel>
+        </IonItem>
+
+        <ImageUploader images={images} setImages={setImages} max={20} />
 
         <IonButton expand="block" onClick={handleCreate}>
           Vytvořit inzerát

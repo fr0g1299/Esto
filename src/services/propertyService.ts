@@ -1,4 +1,4 @@
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import {
   collection,
   doc,
@@ -6,7 +6,10 @@ import {
   setDoc,
   serverTimestamp,
   GeoPoint,
+  updateDoc,
 } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 interface Property {
   ownerId: string;
@@ -47,35 +50,50 @@ interface PropertyDetails {
   heatingType: string;
   videoUrl: string;
 }
+const uploadImage = async (file: File, propertyId: string): Promise<string> => {
+  const imageId = uuidv4();
+  const storageRef = ref(storage, `properties/${propertyId}/images/${imageId}`);
+  await uploadBytes(storageRef, file);
+  const downloadUrl = await getDownloadURL(storageRef);
+  return downloadUrl;
+};
 
 export const createProperty = async (
-  propertyData: Omit<Property, "createdAt" | "updatedAt">,
+  propertyData: Omit<Property, "createdAt" | "updatedAt" | "imageUrl">,
   detailsData: PropertyDetails,
-  images: { imageUrl: string; altText?: string; sortOrder: number }[]
+  imageFiles: File[]
 ) => {
-  // Create main property document
   const propertyRef = await addDoc(collection(db, "properties"), {
     ...propertyData,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  // Set property details
+  const propertyId = propertyRef.id;
+
   await setDoc(
-    doc(db, "properties", propertyRef.id, "details", "data"),
+    doc(db, "properties", propertyId, "details", "data"),
     detailsData
   );
 
-  // Set property images
-  const imagesCollection = collection(
-    db,
-    "properties",
-    propertyRef.id,
-    "images"
+  const uploadedImageUrls = await Promise.all(
+    imageFiles.map((file) => uploadImage(file, propertyId))
   );
-  for (const image of images) {
-    await addDoc(imagesCollection, image);
-  }
 
-  return propertyRef.id;
+  const formattedImages = uploadedImageUrls.map((url, index) => ({
+    imageUrl: url,
+    altText: `Image ${index + 1}`,
+    sortOrder: index + 1,
+  }));
+
+  const imageCollectionRef = collection(db, `properties/${propertyId}/images`);
+  await Promise.all(
+    formattedImages.map((img) => addDoc(imageCollectionRef, img))
+  );
+
+  await updateDoc(doc(db, "properties", propertyId), {
+    imageUrl: formattedImages[0].imageUrl,
+  });
+
+  return propertyId;
 };
