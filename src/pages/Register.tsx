@@ -16,8 +16,6 @@ import { MaskitoOptions, maskitoTransform } from "@maskito/core";
 import { useMaskito } from "@maskito/react";
 import { useHistory } from "react-router-dom";
 
-import "../styles/Register.css";
-
 import { query, where, getDocs, collection } from "firebase/firestore";
 import { db } from "../firebase";
 

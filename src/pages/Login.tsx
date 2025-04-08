@@ -12,8 +12,6 @@ import React, { useState } from "react";
 import { loginUser } from "../services/authService";
 import { useHistory } from "react-router-dom";
 
-import "../styles/Login.css";
-
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -9,6 +9,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
+import imageCompression from "browser-image-compression";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 interface Property {
@@ -51,10 +52,23 @@ interface PropertyDetails {
   videoUrl: string;
 }
 const uploadImage = async (file: File, propertyId: string): Promise<string> => {
+  const options = {
+    maxSizeMB: 5,
+    maxWidthOrHeight: 2560,
+    useWebWorker: true,
+  };
+
+  const compressedFile = await imageCompression(file, options);
+
+  console.log("Original:", file.size / 1024, "KB");
+  console.log("Compressed:", compressedFile.size / 1024, "KB");
+
   const imageId = uuidv4();
   const storageRef = ref(storage, `properties/${propertyId}/images/${imageId}`);
-  await uploadBytes(storageRef, file);
+  await uploadBytes(storageRef, compressedFile);
+
   const downloadUrl = await getDownloadURL(storageRef);
+
   return downloadUrl;
 };
 
