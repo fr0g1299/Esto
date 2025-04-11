@@ -1,97 +1,332 @@
-import { IonContent, IonPage } from "@ionic/react";
-import React from "react";
+import {
+  IonContent,
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonLabel,
+  IonButtons,
+  IonBackButton,
+  IonIcon,
+  IonPopover,
+  IonText,
+  IonList,
+  IonItem,
+} from "@ionic/react";
+import { useParams } from "react-router";
+import { useEffect, useState, useRef } from "react";
+import { doc, getDoc, collection, getDocs, GeoPoint } from "firebase/firestore";
 import { db } from "../firebase";
-import { getDoc, doc, updateDoc, increment } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useStorage } from "../hooks/useStorage";
+import { useHistory } from "react-router";
 
-interface PropertyDetailsProps {
-  propertyId: string;
-  title: string;
-  price: number;
-  imageUrl: string;
-  views: number;
+import {
+  heartOutline,
+  heart,
+  callOutline,
+  mailOutline,
+  personOutline,
+  chatboxEllipsesOutline,
+  checkmarkOutline,
+} from "ionicons/icons";
+
+import { EffectFade, Autoplay } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Swiper as SwiperClass } from "swiper";
+
+// Import Swiper styles
+import "swiper/css";
+import "swiper/css/effect-fade";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import "../styles/PropertyDetails.css";
+import ImageViewerModal from "../components/ui/ImageViewerModal";
+
+interface RouteParams {
+  id: string;
 }
 
-const fetchDocument = async (id: string) => {
-  const docRef = doc(db, "properties", id);
-  const docSnap = await getDoc(docRef);
+interface Property {
+  ownerId: string;
+  title: string;
+  price: number;
+  status: "Available" | "Sold";
+  address: string;
+  city: string;
+  type: "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa";
+  disposition: string;
+  imageUrl: string;
+  geolocation: GeoPoint;
+  createdAt: Date;
+  updatedAt: Date;
+  garage: boolean;
+  elevator: boolean;
+  gasConnection: boolean;
+  threePhaseElectricity: boolean;
+  basement: boolean;
+  furnished: boolean;
+  balcony: boolean;
+  garden: boolean;
+  solarPanels: boolean;
+  pool: boolean;
+}
 
-  if (docSnap.exists()) {
-    const data = docSnap.data() as PropertyDetailsProps;
-    console.log("Document data:", data);
-    return data;
-  } else {
-    console.log("No such document!");
-    return null;
-  }
-};
+interface PropertyDetails {
+  yearBuilt: number;
+  floors: number;
+  bathroomCount: number;
+  gardenSize: number;
+  propertySize: number;
+  parkingSpots: number;
+  rooms: number;
+  postalCode: string;
+  description: string;
+  kitchenEquipment: string[];
+  heatingType: string;
+  videoUrl: string;
+}
 
-const incrementViews = async (id: string) => {
-  try {
-    const docRef = doc(db, "properties", id);
-    await updateDoc(docRef, {
-      views: increment(1),
-    });
-  } catch (error) {
-    console.error("Failed to increment views:", error);
-  }
+interface PropertyImages {
+  imageUrl: string;
+  altText: string;
+  sortOrder: number;
+}
+
+interface UserContact {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+}
+
+const slideOpts = {
+  spaceBetween: 30,
+  centeredSlides: true,
+  effect: "fade",
+  modules: [EffectFade, Autoplay],
+  autoplay: {
+    delay: 3500,
+    disableOnInteraction: false,
+    loop: true,
+  },
 };
 
 const PropertyDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [propertyDetails, setPropertyDetails] =
-    useState<PropertyDetailsProps | null>(null);
-  const { get, set, ready } = useStorage();
+  const { id } = useParams<RouteParams>();
+  const history = useHistory();
+
+  const [property, setProperty] = useState<Property>();
+  const [details, setDetails] = useState<PropertyDetails>();
+  const [images, setImages] = useState<PropertyImages[]>();
+  const [userContact, setUserContact] = useState<UserContact>();
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  const swiperRef = useRef<SwiperClass | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    const fetchData = async () => {
+      const propertyDoc = await getDoc(doc(db, "properties", id));
+      const detailsDoc = await getDoc(
+        doc(db, "properties", id, "details", "data")
+      );
+      const imageDocs = await getDocs(
+        collection(db, "properties", id, "images")
+      );
+      const userDoc = await getDoc(
+        doc(db, "users", propertyDoc.data()?.ownerId)
+      );
 
-    fetchDocument(id).then((data) => {
-      if (data) {
-        setPropertyDetails(data);
-        incrementViews(id);
-      }
-    });
+      if (propertyDoc.exists()) setProperty(propertyDoc.data() as Property);
+      if (detailsDoc.exists()) setDetails(detailsDoc.data() as PropertyDetails);
+      if (userDoc.exists()) setUserContact(userDoc.data() as UserContact);
+      setImages(imageDocs.docs.map((doc) => doc.data() as PropertyImages));
+    };
+    console.log("Fetching data for property ID:", id);
     console.log("Property ID:", id);
+
+    fetchData();
   }, [id]);
 
   useEffect(() => {
-    if (!propertyDetails || !ready) return;
+    if (!viewerOpen) {
+      swiperRef.current?.autoplay.start();
+    }
+    console.log("Viewer open state changed:", viewerOpen);
+  }, [viewerOpen]);
 
-    const saveToViewedHistory = async () => {
-      const { title, price, imageUrl } = propertyDetails;
-      const minimalProperty = { id, title, price, imageUrl };
-      console.log("id:", id);
-
-      const viewedHistory: (typeof minimalProperty)[] =
-        (await get("viewedHistory")) || [];
-
-      const updatedHistory = [
-        minimalProperty,
-        ...viewedHistory.filter((p) => p.id !== minimalProperty.id),
-      ];
-
-      if (updatedHistory.length > 10) {
-        updatedHistory.pop();
-      }
-
-      console.log("Updated history:", updatedHistory);
-
-      await set("viewedHistory", updatedHistory);
-    };
-
-    saveToViewedHistory();
-  }, [propertyDetails, ready, get, set, id]);
+  if (!property || !details)
+    return <IonContent fullscreen>Loading...</IonContent>;
 
   return (
     <IonPage>
-      <IonContent fullscreen className="ion-padding">
-        <h1>Property Details</h1>
-        <p>Property Title: {propertyDetails?.title}</p>
-        <p>Property Price: {propertyDetails?.price}</p>
-        <p>Property Image URL: {propertyDetails?.imageUrl}</p>
+      <IonHeader translucent>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/home"></IonBackButton>
+          </IonButtons>
+          <IonButtons slot="end">
+            <IonIcon
+              icon={heartOutline}
+              slot="icon-only"
+              color="danger"
+              className="toolbar-icon"
+            />
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent fullscreen className=" property-details-content">
+        <div className="swiper-container">
+          <Swiper
+            {...slideOpts}
+            onSwiper={(swiper) => (swiperRef.current = swiper)}
+          >
+            {images?.map((img, idx) => (
+              <SwiperSlide
+                key={idx}
+                onClick={() => {
+                  setViewerOpen(true);
+                  swiperRef.current?.autoplay.stop();
+                }}
+              >
+                <img
+                  src={img.imageUrl}
+                  alt={img.altText}
+                  className="swiper-image"
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+        <ImageViewerModal
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          images={images || []}
+        />
+        <div className="property-body">
+          {/* Main Info */}
+          <h1>{property.title}</h1>
+          <IonIcon
+            icon={personOutline}
+            id="click-trigger"
+            size={"large"}
+          ></IonIcon>
+          <IonIcon
+            icon={chatboxEllipsesOutline}
+            size={"large"}
+            onClick={() => history.push("/chat")}
+          ></IonIcon>
+          <IonPopover trigger="click-trigger">
+            <IonList>
+              <IonItem>
+                {userContact?.firstName} {userContact?.lastName}
+              </IonItem>
+              <IonItem lines="none">
+                <IonIcon icon={callOutline} slot="start" />
+                <IonText>{userContact?.phone}</IonText>
+              </IonItem>
+              <IonItem lines="none">
+                <IonIcon icon={mailOutline} slot="start" />
+                <IonText>{userContact?.email}</IonText>
+              </IonItem>
+            </IonList>
+          </IonPopover>
+          <h2>{property.price.toLocaleString("cs")} Kč</h2>
+          <p>
+            {property.type} · {property.disposition} · {property.city}
+          </p>
+          <p>{property.address}</p>
+          <p>{details.description}</p>
+
+          {/* Property Details */}
+          <IonGrid>
+            <IonRow>
+              <IonCol>
+                <IonLabel>Plocha pozemku: {details.propertySize} m²</IonLabel>
+              </IonCol>
+              <IonCol>
+                <IonLabel>Velikost zahrady: {details.gardenSize} m²</IonLabel>
+              </IonCol>
+              <IonCol>
+                <IonLabel>Patra: {details.floors}</IonLabel>
+              </IonCol>
+              <IonCol>
+                <IonLabel>Koupelny: {details.bathroomCount}</IonLabel>
+              </IonCol>
+              <IonCol>
+                <IonLabel>Pokoje: {details.rooms}</IonLabel>
+              </IonCol>
+              <IonCol>
+                <IonLabel>Parkování: {details.parkingSpots}</IonLabel>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
+
+          {/* Boolean Features */}
+          <IonGrid>
+            <IonRow>
+              {[
+                ["Garáž", property.garage],
+                ["Výtah", property.elevator],
+                ["Plynové připojení", property.gasConnection],
+                ["Třífázová elektřina", property.threePhaseElectricity],
+                ["Sklep", property.basement],
+                ["Zařízený", property.furnished],
+                ["Balkon", property.balcony],
+                ["Zahrada", property.garden],
+                ["Solární panely", property.solarPanels],
+                ["Bazén", property.pool],
+              ]
+                .filter(([, val]) => val)
+                .map(([label], i) => (
+                  <IonCol size="6" key={i}>
+                    <IonLabel className="boolean-label">
+                      <IonIcon
+                        icon={checkmarkOutline}
+                        slot="start"
+                        className="boolean-icon"
+                      />
+                      {label}
+                    </IonLabel>
+                  </IonCol>
+                ))}
+            </IonRow>
+          </IonGrid>
+
+          {/* Kitchen Equipment */}
+          <h3>Vybavení kuchyně</h3>
+          <ul>
+            {details.kitchenEquipment.map((item: string, idx: number) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+
+          {/* Extra */}
+          <p>
+            <strong>Vytápění:</strong> {details.heatingType}
+          </p>
+          <p>
+            <strong>Rok výstavby:</strong> {details.yearBuilt}
+          </p>
+          <p>
+            <strong>PSČ:</strong> {details.postalCode}
+          </p>
+
+          {/* {details.videoUrl && (
+          <div className="video-container">
+          <iframe
+          width="100%"
+          height="200"
+          src={details.videoUrl}
+          title="Video nemovitosti"
+          frameBorder="0"
+          allowFullScreen
+          />
+          </div>
+          )} */}
+        </div>
       </IonContent>
     </IonPage>
   );
