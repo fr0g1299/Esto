@@ -16,7 +16,6 @@ import {
   IonCol,
   IonRow,
 } from "@ionic/react";
-import { GeoPoint } from "firebase/firestore";
 import { createProperty } from "../services/propertyService";
 import { useAuth } from "../hooks/useAuth";
 import { geocodeAddress } from "../services/geocodingService";
@@ -191,7 +190,7 @@ const Create: React.FC = () => {
           city,
           type,
           disposition,
-          geolocation: new GeoPoint(latitude, longitude),
+          geolocation: { latitude, longitude },
           garage,
           elevator,
           gasConnection,

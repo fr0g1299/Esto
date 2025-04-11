@@ -28,9 +28,11 @@
     "firebase": "^11.5.0",
     "ionicons": "^7.4.0",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-leaflet": "^5.0.0",
+    "react-leaflet-markercluster": "^5.0.0-rc.0",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "swiper": "^11.2.6"

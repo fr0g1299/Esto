@@ -3,10 +3,12 @@ import { IonPage, IonContent, useIonViewWillEnter } from "@ionic/react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/SearchMap.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { db } from "../firebase";
 import { collection, GeoPoint, getDocs } from "firebase/firestore";
+import { query, where } from "firebase/firestore";
 import { useStorage } from "../hooks/useStorage";
+import MarkerClusterGroup from "react-leaflet-markercluster";
 
 interface Property {
   id: string;
@@ -21,24 +23,98 @@ const ResizeMap = () => {
   return null;
 };
 
+const MapBoundsInitializer: React.FC<{
+  onBoundsChange: (bounds: { sw: L.LatLng; ne: L.LatLng }) => void;
+}> = ({ onBoundsChange }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const updateBounds = () => {
+      const bounds = map.getBounds();
+      onBoundsChange({
+        sw: bounds.getSouthWest(),
+        ne: bounds.getNorthEast(),
+      });
+    };
+
+    map.on("moveend", updateBounds);
+    updateBounds();
+
+    return () => {
+      map.off("moveend", updateBounds);
+    };
+  }, [map, onBoundsChange]);
+
+  return null;
+};
+
 const SearchMap: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const { get, ready } = useStorage();
 
-  useEffect(() => {
-    const fetchThemeAndProperties = async () => {
-      const propertiesSnapshot = await getDocs(collection(db, "properties"));
-      const data: Property[] = propertiesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Property, "id">),
-      }));
-      console.log(data);
-      setProperties(data);
-    };
+  const [mapBounds, setMapBounds] = useState<{
+    sw: L.LatLng;
+    ne: L.LatLng;
+  } | null>(null);
+  const lastFetchedBounds = useRef<{ sw: L.LatLng; ne: L.LatLng } | null>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-    fetchThemeAndProperties();
-  }, []);
+  useEffect(() => {
+    if (!mapBounds) return;
+
+    // Clear previous debounce
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(() => {
+      const { sw, ne } = mapBounds;
+      const last = lastFetchedBounds.current;
+
+      // Check if bounds changed significantly
+      const boundsChanged =
+        !last ||
+        Math.abs(last.sw.lat - sw.lat) > 0.01 ||
+        Math.abs(last.sw.lng - sw.lng) > 0.01 ||
+        Math.abs(last.ne.lat - ne.lat) > 0.01 ||
+        Math.abs(last.ne.lng - ne.lng) > 0.01;
+
+      if (!boundsChanged) {
+        console.log("Bounds didn't change significantly — skip fetch.");
+        return;
+      }
+
+      lastFetchedBounds.current = mapBounds;
+
+      const fetchVisibleProperties = async () => {
+        console.log("Fetching properties in bounds:", sw, ne);
+
+        const propertiesQuery = query(
+          collection(db, "properties"),
+          where("geolocation.latitude", ">=", sw.lat),
+          where("geolocation.latitude", "<=", ne.lat),
+          where("geolocation.longitude", ">=", sw.lng),
+          where("geolocation.longitude", "<=", ne.lng)
+        );
+
+        const snapshot = await getDocs(propertiesQuery);
+        const data: Property[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Property, "id">),
+        }));
+
+        const sameIds =
+          data.map((p) => p.id).join(",") ===
+          properties.map((p) => p.id).join(",");
+        if (sameIds) return;
+        if (!sameIds) {
+          console.log("Properties changed, updating state...");
+          setProperties(data);
+        }
+      };
+
+      fetchVisibleProperties();
+    }, 900);
+  }, [mapBounds, properties]);
 
   useIonViewWillEnter(() => {
     const getDarkTheme = async () => {
@@ -54,8 +130,7 @@ const SearchMap: React.FC = () => {
 
   const darkTiles =
     "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-  const lightTiles =
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+  const lightTiles = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   return (
     <IonPage>
@@ -75,32 +150,39 @@ const SearchMap: React.FC = () => {
           scrollWheelZoom={true}
           className="map-container"
         >
+          {/* {properties.length === 0 && ( // TODO: markers blink on load */}
+          <MapBoundsInitializer onBoundsChange={setMapBounds} />
+          {/* )} */}
           <ResizeMap />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
             url={isDarkMode ? darkTiles : lightTiles}
             className="map-tiles"
           />
-
-          {properties.map((property) => (
-            <Marker
-              key={property.id}
-              position={[
-                property.geolocation.latitude,
-                property.geolocation.longitude,
-              ]}
-            >
-              <Popup>
-                <strong>{property.title}</strong>
-                <br />
-                <img
-                  src={property.imageUrl}
-                  alt={property.title}
-                  className="property-image"
-                />
-              </Popup>
-            </Marker>
-          ))}
+          <MarkerClusterGroup
+            spiderfyDistanceMultiplier={1}
+            showCoverageOnHover={true}
+          >
+            {properties.map((property) => (
+              <Marker
+                key={property.id}
+                position={[
+                  property.geolocation.latitude,
+                  property.geolocation.longitude,
+                ]}
+              >
+                <Popup>
+                  <strong>{property.title}</strong>
+                  <br />
+                  <img
+                    src={property.imageUrl}
+                    alt={property.title}
+                    className="property-image"
+                  />
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
         </MapContainer>
       </IonContent>
     </IonPage>

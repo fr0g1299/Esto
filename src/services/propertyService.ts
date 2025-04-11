@@ -5,7 +5,6 @@ import {
   addDoc,
   setDoc,
   serverTimestamp,
-  GeoPoint,
   updateDoc,
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
@@ -22,7 +21,10 @@ interface Property {
   type: "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa";
   disposition: string;
   imageUrl: string;
-  geolocation: GeoPoint;
+  geolocation: {
+    latitude: number;
+    longitude: number;
+  };
   createdAt: Date;
   updatedAt: Date;
   garage: boolean;
