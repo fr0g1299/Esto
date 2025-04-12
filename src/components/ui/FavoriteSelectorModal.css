@@ -1,0 +1,12 @@
+.favorite-modal {
+  --width: 90% !important;
+  --height: 85% !important;
+  --border-radius: 16px;
+}
+
+.new-folder-item {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}

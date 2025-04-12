@@ -60,6 +60,7 @@ import "./styles/global.css";
 import "./styles/App.css";
 import PrivateRoute from "./components/PrivateRoute";
 import Chat from "./pages/Chat";
+import Folder from "./pages/Folder";
 
 setupIonicReact();
 
@@ -93,6 +94,7 @@ const App: React.FC = () => {
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
               <Route exact path="/chat" component={Chat} />
+              <Route exact path="/collection/folder/:folderId" component={Folder} />
               <PrivateRoute
                 exact
                 path="/notifications"

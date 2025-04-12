@@ -42,6 +42,9 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "../styles/PropertyDetails.css";
 import ImageViewerModal from "../components/ui/ImageViewerModal";
+import FavoriteSelectorModal from "../components/ui/FavoriteSelectorModal";
+import { isPropertyFavorited } from "../services/favoritesService";
+import { useAuth } from "../hooks/useAuth";
 
 interface RouteParams {
   id: string;
@@ -115,11 +118,14 @@ const slideOpts = {
 const PropertyDetails: React.FC = () => {
   const { id } = useParams<RouteParams>();
   const history = useHistory();
+  const { user } = useAuth();
 
   const [property, setProperty] = useState<Property>();
   const [details, setDetails] = useState<PropertyDetails>();
   const [images, setImages] = useState<PropertyImages[]>();
   const [userContact, setUserContact] = useState<UserContact>();
+  const [showFavoriteModal, setShowFavoriteModal] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const [viewerOpen, setViewerOpen] = useState(false);
 
@@ -137,6 +143,9 @@ const PropertyDetails: React.FC = () => {
       const userDoc = await getDoc(
         doc(db, "users", propertyDoc.data()?.ownerId)
       );
+      const isFav = await isPropertyFavorited(user?.uid ?? "", id);
+      setIsFavorite(isFav);
+      console.log(user?.uid);
 
       if (propertyDoc.exists()) setProperty(propertyDoc.data() as Property);
       if (detailsDoc.exists()) setDetails(detailsDoc.data() as PropertyDetails);
@@ -147,7 +156,7 @@ const PropertyDetails: React.FC = () => {
     console.log("Property ID:", id);
 
     fetchData();
-  }, [id]);
+  }, [id, user?.uid]);
 
   useEffect(() => {
     if (!viewerOpen) {
@@ -155,6 +164,12 @@ const PropertyDetails: React.FC = () => {
     }
     console.log("Viewer open state changed:", viewerOpen);
   }, [viewerOpen]);
+
+  const handleClose = async () => {
+    setShowFavoriteModal(false);
+    const updated = await isPropertyFavorited(user?.uid ?? "", id);
+    setIsFavorite(updated);
+  };
 
   if (!property || !details)
     return <IonContent fullscreen>Loading...</IonContent>;
@@ -168,10 +183,11 @@ const PropertyDetails: React.FC = () => {
           </IonButtons>
           <IonButtons slot="end">
             <IonIcon
-              icon={heartOutline}
+              icon={isFavorite ? heart : heartOutline}
               slot="icon-only"
               color="danger"
               className="toolbar-icon"
+              onClick={() => setShowFavoriteModal(true)}
             />
           </IonButtons>
         </IonToolbar>
@@ -204,6 +220,15 @@ const PropertyDetails: React.FC = () => {
           isOpen={viewerOpen}
           onClose={() => setViewerOpen(false)}
           images={images || []}
+        />
+        <FavoriteSelectorModal
+          isOpen={showFavoriteModal}
+          onClose={handleClose}
+          propertyId={id}
+          title={property.title}
+          price={property.price}
+          disposition={property.disposition}
+          imageUrl={property.imageUrl}
         />
         <div className="property-body">
           {/* Main Info */}

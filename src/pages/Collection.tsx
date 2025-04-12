@@ -13,12 +13,14 @@ import {
   IonAccordion,
   IonAccordionGroup,
   IonText,
+  IonNote,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useStorage } from "../hooks/useStorage";
 import { useAuth } from "../hooks/useAuth";
 
 import "../styles/Collection.css";
+import { getFavoriteFolders } from "../services/favoritesService";
 
 interface HistoryProps {
   id: string;
@@ -27,11 +29,18 @@ interface HistoryProps {
   imageUrl: string;
 }
 
+interface FolderProps {
+  id: string;
+  title: string;
+  propertyCount: number;
+}
+
 const Collection: React.FC = () => {
   const { user } = useAuth();
   const { get, ready } = useStorage();
   const [viewedHistory, setViewedHistory] = useState<HistoryProps[]>([]);
-
+  const [favoriteFolders, setFavoriteFolders] = useState<FolderProps[]>([]);
+  // TODO: Implement removal of folders
   useEffect(() => {
     const fetchViewedHistory = async () => {
       if (!ready) return;
@@ -45,8 +54,20 @@ const Collection: React.FC = () => {
       }
     };
 
+    const fetchFavoriteFolders = async () => {
+      if (!user) return;
+      console.log("useeffect...");
+
+      try {
+        setFavoriteFolders(await getFavoriteFolders(user.uid));
+      } catch (error) {
+        console.error("Fetch error:", error);
+      }
+    };
+
     fetchViewedHistory();
-  }, [ready, get]);
+    fetchFavoriteFolders();
+  }, [ready, get, user]);
 
   useIonViewDidEnter(() => {
     const fetchViewedHistory = async () => {
@@ -92,13 +113,21 @@ const Collection: React.FC = () => {
             </IonList>
           </IonAccordion>
 
-          <IonAccordion value="savedProperties" disabled={user === null}>
+          <IonAccordion value="savedProperties" disabled={!user}>
             <IonItem slot="header">
-              <IonLabel>Oblíbené Inzeráty</IonLabel>
+              <IonLabel>Složky oblíbených inzerátů</IonLabel>
             </IonItem>
-            <div slot="content" className="ion-padding">
-              <p>Content</p>
-            </div>
+            <IonList slot="content">
+              {favoriteFolders.map((folder) => (
+                <IonItem
+                  key={folder.id}
+                  routerLink={`/collection/folder/${folder.id}?name=${folder.title}`}
+                >
+                  <IonLabel>{folder.title}</IonLabel>
+                  <IonNote slot="end">{folder.propertyCount ?? 0}</IonNote>
+                </IonItem>
+              ))}
+            </IonList>
           </IonAccordion>
 
           <IonAccordion value="placeholder2" disabled={user === null}>
