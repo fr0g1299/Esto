@@ -71,7 +71,7 @@ const ImageViewerModal: React.FC<Props> = ({ isOpen, onClose, images }) => {
         <div>
           <Swiper
             initialSlide={startIndex}
-            zoom={true}
+            zoom={{ maxRatio: 5 }}
             pagination={{ type: "fraction", clickable: true }}
             modules={[Zoom, Pagination]}
             style={{ height: "100%" }}

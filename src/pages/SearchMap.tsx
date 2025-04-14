@@ -1,6 +1,7 @@
 import React from "react";
 import { IonPage, IonContent, useIonViewWillEnter } from "@ionic/react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/SearchMap.css";
 import { useEffect, useState, useRef } from "react";
@@ -9,6 +10,7 @@ import { collection, GeoPoint, getDocs } from "firebase/firestore";
 import { query, where } from "firebase/firestore";
 import { useStorage } from "../hooks/useStorage";
 import MarkerClusterGroup from "react-leaflet-markercluster";
+import markerIconPng from "leaflet/dist/images/marker-icon.png";
 
 interface Property {
   id: string;
@@ -170,6 +172,13 @@ const SearchMap: React.FC = () => {
                   property.geolocation.latitude,
                   property.geolocation.longitude,
                 ]}
+                icon={
+                  new Icon({
+                    iconUrl: markerIconPng,
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                  })
+                }
               >
                 <Popup>
                   <strong>{property.title}</strong>

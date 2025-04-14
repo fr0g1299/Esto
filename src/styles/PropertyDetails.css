@@ -42,13 +42,14 @@ ion-header {
 }
 
 .property-body {
-  position: relative;
+  position: absolute;
   z-index: 3;
-  top: 180px !important;
+  top: 235px !important;
   padding: 5px 15px 100px 15px;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
   background-color: var(--ion-background-color, #fff);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
 }
 
 ion-popover {
