@@ -61,6 +61,8 @@ import "./styles/App.css";
 import PrivateRoute from "./components/PrivateRoute";
 import Chat from "./pages/Chat";
 import Folder from "./pages/Folder";
+import UserListings from "./pages/UserListings";
+import EditProperty from "./pages/EditProperty";
 
 setupIonicReact();
 
@@ -94,12 +96,18 @@ const App: React.FC = () => {
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
               <Route exact path="/chat" component={Chat} />
-              <Route exact path="/collection/folder/:folderId" component={Folder} />
+              <Route
+                exact
+                path="/collection/folder/:folderId"
+                component={Folder}
+              />
+              <Route exact path="/userListings" component={UserListings} />
               <PrivateRoute
                 exact
                 path="/notifications"
                 component={Notifications}
               />
+              <Route exact path="/edit/:id" component={EditProperty} />
               <PrivateRoute exact path="/create" component={Create} />
               <Route exact path="/" render={() => <Redirect to="/home" />} />
             </IonRouterOutlet>
