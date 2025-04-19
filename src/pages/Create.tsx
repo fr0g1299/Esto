@@ -26,8 +26,16 @@ import { MaskitoOptions } from "@maskito/core";
 import { useMaskito } from "@maskito/react";
 import { maskitoTransform } from "@maskito/core";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
-import "../styles/Create.css";
+import "../styles/CreateAndEdit.css";
 import ImageUploader from "../components/ui/ImageUploader";
+
+interface UploadedImage {
+  imageUrl: string;
+  altText?: string;
+  sortOrder?: number;
+}
+
+type ImageType = File | UploadedImage;
 
 const Create: React.FC = () => {
   const { user } = useAuth();
@@ -72,7 +80,7 @@ const Create: React.FC = () => {
   const [heatingType, setHeatingType] = useState("");
 
   // State for image upload
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<ImageType[]>([]);
 
   // Maskito for postal code
   const postalCodeMaskOptions: MaskitoOptions = {
@@ -216,7 +224,7 @@ const Create: React.FC = () => {
           heatingType,
           videoUrl: "https://youtube.com/...",
         },
-        images
+        images.filter((image): image is File => image instanceof File)
       );
 
       console.log("Created property with ID:", propertyId);
@@ -226,7 +234,7 @@ const Create: React.FC = () => {
   };
 
   return (
-    <IonPage>
+    <IonPage className="create-page">
       <IonContent fullscreen className="ion-padding" scrollEvents>
         <IonList lines="full" className="input-list">
           <FormInput label="Název inzerátu" value={title} onChange={setTitle} />

@@ -29,6 +29,7 @@ import {
   personOutline,
   chatboxEllipsesOutline,
   checkmarkOutline,
+  pencil,
 } from "ionicons/icons";
 
 import { EffectFade, Autoplay } from "swiper/modules";
@@ -175,12 +176,22 @@ const PropertyDetails: React.FC = () => {
     return <IonContent fullscreen>Loading...</IonContent>;
 
   return (
-    <IonPage>
+    <IonPage className="property-details-page">
       <IonHeader translucent>
         <IonToolbar>
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home"></IonBackButton>
           </IonButtons>
+          {user?.uid === property.ownerId && (
+            <IonButtons slot="end">
+              <IonIcon
+                icon={pencil}
+                slot="icon-only"
+                className="toolbar-icon"
+                onClick={() => history.push(`/edit/${id}`)}
+              />
+            </IonButtons>
+          )}
           <IonButtons slot="end">
             <IonIcon
               icon={isFavorite ? heart : heartOutline}

@@ -12,13 +12,27 @@ import {
 import { useRef } from "react";
 import "./ImageUploader.css";
 
-interface Props {
-  images: File[];
-  setImages: (files: File[]) => void;
-  max?: number;
+interface UploadedImage {
+  imageUrl: string;
+  altText?: string;
+  sortOrder?: number;
 }
 
-const ImageUploader: React.FC<Props> = ({ images, setImages, max = 20 }) => {
+type ImageType = File | UploadedImage;
+
+interface Props {
+  images: ImageType[];
+  setImages: (files: ImageType[]) => void;
+  max?: number;
+  onRemoveUploadedImage?: (image: UploadedImage) => void; // Callback for removing already uploaded images
+}
+
+const ImageUploader: React.FC<Props> = ({
+  images,
+  setImages,
+  max = 20,
+  onRemoveUploadedImage,
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const modal = useRef<HTMLIonModalElement>(null);
 
@@ -41,7 +55,14 @@ const ImageUploader: React.FC<Props> = ({ images, setImages, max = 20 }) => {
 
       setTimeout(() => {
         const updated = [...images];
-        updated.splice(index, 1);
+        const removedImage = updated.splice(index, 1)[0];
+
+        // If the removed image is an already uploaded image, call the callback
+        if (!(removedImage instanceof File) && onRemoveUploadedImage) {
+          onRemoveUploadedImage(removedImage);
+        }
+        console.log(updated);
+
         setImages(updated);
       }, 300);
     }
@@ -90,8 +111,12 @@ const ImageUploader: React.FC<Props> = ({ images, setImages, max = 20 }) => {
             {images.map((img, idx) => (
               <div key={idx} className="image-container" id={`img-${idx}`}>
                 <IonImg
-                  src={URL.createObjectURL(img)}
-                  alt={`preview-${idx}`}
+                  src={
+                    img instanceof File
+                      ? URL.createObjectURL(img) // For new uploads
+                      : img.imageUrl // For already uploaded images
+                  }
+                  alt={img instanceof File ? img.name : img.altText}
                   className="image-preview"
                 />
                 <button
