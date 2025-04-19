@@ -22,3 +22,9 @@ ion-accordion-group {
   margin: 0;
   margin-top: 10px;
 }
+
+ion-accordion.accordion-expanding,
+ion-accordion.accordion-expanded {
+  width: calc(100% - 8px);
+  margin: 16px auto;
+}

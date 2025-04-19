@@ -131,7 +131,7 @@ const Home: React.FC = () => {
   //   );
   // } else {
   return (
-    <IonPage>
+    <IonPage className="home-page">
       <IonContent fullscreen scrollEvents>
         <IonGrid>
           <IonRow className="ion-align-items-center ion-justify-content-between ion-padding-horizontal">

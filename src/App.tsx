@@ -101,7 +101,11 @@ const App: React.FC = () => {
                 path="/collection/folder/:folderId"
                 component={Folder}
               />
-              <Route exact path="/userListings" component={UserListings} />
+              <PrivateRoute
+                exact
+                path="/userListings"
+                component={UserListings}
+              />
               <PrivateRoute
                 exact
                 path="/notifications"

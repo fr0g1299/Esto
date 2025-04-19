@@ -40,6 +40,8 @@ const Collection: React.FC = () => {
   const { get, ready } = useStorage();
   const [viewedHistory, setViewedHistory] = useState<HistoryProps[]>([]);
   const [favoriteFolders, setFavoriteFolders] = useState<FolderProps[]>([]);
+  const [accordionKey, setAccordionKey] = useState(0);
+
   // TODO: Implement removal of folders
   useEffect(() => {
     const fetchViewedHistory = async () => {
@@ -75,6 +77,7 @@ const Collection: React.FC = () => {
 
       console.log("useIonViewDidEnter...");
 
+      setAccordionKey((prev) => prev + 1);
       const history: HistoryProps[] = (await get("viewedHistory")) || [];
       setViewedHistory(history);
     };
@@ -90,7 +93,7 @@ const Collection: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="ion-padding">
-        <IonAccordionGroup multiple expand="inset">
+        <IonAccordionGroup key={accordionKey} multiple expand="inset">
           <IonAccordion value="viewedHistory">
             <IonItem slot="header">
               <IonLabel>Historie zobrazení</IonLabel>
@@ -137,6 +140,11 @@ const Collection: React.FC = () => {
             <div slot="content" className="ion-padding">
               <p>Content</p>
             </div>
+          </IonAccordion>
+          <IonAccordion value="userListings" disabled={!user} toggleIcon="">
+            <IonItem routerLink="/userListings" slot="header">
+              <IonLabel>Moje inzeráty</IonLabel>
+            </IonItem>
           </IonAccordion>
         </IonAccordionGroup>
         {!user && (

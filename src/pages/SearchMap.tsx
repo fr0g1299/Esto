@@ -135,7 +135,7 @@ const SearchMap: React.FC = () => {
   const lightTiles = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   return (
-    <IonPage>
+    <IonPage className="search-map-page">
       <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
