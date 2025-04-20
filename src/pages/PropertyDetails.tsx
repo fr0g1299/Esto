@@ -157,6 +157,9 @@ const PropertyDetails: React.FC = () => {
     const fetchData = async () => {
       //TODO: clean this up into a service
       const propertyDoc = await getDoc(doc(db, "properties", id));
+      if (!propertyDoc.exists()) {
+        history.replace("/not-found");
+      }
       const detailsDoc = await getDoc(
         doc(db, "properties", id, "details", "data")
       );
@@ -180,7 +183,7 @@ const PropertyDetails: React.FC = () => {
     console.log("Property ID:", id);
 
     fetchData();
-  }, [id, user?.uid]);
+  }, [id, user?.uid, history]);
 
   useEffect(() => {
     if (!property) return;

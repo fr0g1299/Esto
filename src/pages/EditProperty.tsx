@@ -9,7 +9,6 @@ import {
   IonLabel,
   IonButton,
   IonLoading,
-  IonToast,
   IonAlert,
   IonList,
   IonSelect,
@@ -22,10 +21,15 @@ import {
   IonDatetime,
   IonButtons,
   IonBackButton,
+  useIonToast,
 } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { useParams, useHistory } from "react-router";
-import { getPropertyById, updateProperty } from "../services/propertyService";
+import {
+  getPropertyById,
+  removeProperty,
+  updateProperty,
+} from "../services/propertyService";
 import FormInput from "../components/ui/FormInput";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import { MaskitoOptions, maskitoTransform } from "@maskito/core";
@@ -53,7 +57,8 @@ const EditProperty: React.FC = () => {
   const history = useHistory();
   useTabBarScrollEffect();
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(false);
+  const [showToast] = useIonToast();
+  const [removeInputCheck, setRemoveInputCheck] = useState(false);
 
   // States for property details, that can be filtered
   const [title, setTitle] = useState("");
@@ -276,8 +281,22 @@ const EditProperty: React.FC = () => {
       ),
       removedUploadedImages
     );
-    setToast(true);
+    showToast("Inzerát byl úspěšně upraven!", 1500);
     setTimeout(() => history.push(`/details/${id}`), 1500);
+  };
+
+  const handleRemove = async () => {
+    await removeProperty(id);
+    showToast("Inzerát byl úspěšně smazán!", 3000);
+    setTimeout(() => history.replace("/"), 1500);
+  };
+
+  const handleRemoveInput = async (e: string) => {
+    if (e == "Chci vymazat inzerát") {
+      setRemoveInputCheck(true);
+    } else {
+      setRemoveInputCheck(false);
+    }
   };
 
   return (
@@ -475,6 +494,20 @@ const EditProperty: React.FC = () => {
               max={20}
               onRemoveUploadedImage={handleRemoveUploadedImage}
             />
+            <IonLabel>Pro vymazání napište: Chci vymazat inzerát</IonLabel>
+            <IonInput
+              onIonInput={(e) => handleRemoveInput(e.detail.value!)}
+            ></IonInput>
+
+            <IonButton
+              id="remove-alert"
+              expand="block"
+              color="danger"
+              disabled={!removeInputCheck}
+            >
+              Smazat inzerát
+            </IonButton>
+
             <IonButton id="save-alert" expand="block">
               Uložit změny
             </IonButton>
@@ -499,9 +532,29 @@ const EditProperty: React.FC = () => {
                 },
               ]}
             ></IonAlert>
+            <IonAlert
+              trigger="remove-alert"
+              header="Opravdu chcete smazat inzerát?"
+              message="Pokud smažete inzerát, nebude možné ho obnovit."
+              buttons={[
+                {
+                  text: "Zrušit",
+                  role: "cancel",
+                  cssClass: "secondary",
+                  handler: () => {
+                    console.log("Cancel clicked");
+                  },
+                },
+                {
+                  text: "Ano",
+                  handler: () => {
+                    handleRemove();
+                  },
+                },
+              ]}
+            ></IonAlert>
           </>
         )}
-        <IonToast isOpen={toast} message="Uloženo!" duration={1500} />
       </IonContent>
     </IonPage>
   );

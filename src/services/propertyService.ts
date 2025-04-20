@@ -18,6 +18,7 @@ import {
   uploadBytes,
   getDownloadURL,
   deleteObject,
+  listAll,
 } from "firebase/storage";
 
 interface Property {
@@ -242,4 +243,35 @@ export const updateProperty = async (
   }
 
   return propertyId;
+};
+
+export const removeProperty = async (propertyId: string) => {
+  try {
+    const propertyRef = doc(db, "properties", propertyId);
+
+    // Delete property details
+    const detailsRef = doc(db, "properties", propertyId, "details", "data");
+    await deleteDoc(detailsRef);
+
+    // Delete image documents from Firestore
+    const imagesCollection = collection(db, "properties", propertyId, "images");
+    const imagesSnapshot = await getDocs(imagesCollection);
+    await Promise.all(imagesSnapshot.docs.map((doc) => deleteDoc(doc.ref)));
+
+    // Delete image files from Firebase Storage
+    const storageFolderRef = ref(storage, `properties/${propertyId}/images`);
+    const storedFiles = await listAll(storageFolderRef);
+
+    await Promise.all(
+      storedFiles.items.map((itemRef) => deleteObject(itemRef))
+    );
+
+    // Delete the main property document
+    await deleteDoc(propertyRef);
+
+    console.log(`Property ${propertyId} successfully deleted.`);
+  } catch (error) {
+    console.error("Error deleting property:", error);
+    throw error;
+  }
 };
