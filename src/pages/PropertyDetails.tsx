@@ -17,7 +17,15 @@ import {
 } from "@ionic/react";
 import { useParams } from "react-router";
 import { useEffect, useState, useRef } from "react";
-import { doc, getDoc, collection, getDocs, GeoPoint } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  GeoPoint,
+  increment,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { useHistory } from "react-router";
 
@@ -46,6 +54,7 @@ import ImageViewerModal from "../components/ui/ImageViewerModal";
 import FavoriteSelectorModal from "../components/ui/FavoriteSelectorModal";
 import { isPropertyFavorited } from "../services/favoritesService";
 import { useAuth } from "../hooks/useAuth";
+import { useStorage } from "../hooks/useStorage";
 
 interface RouteParams {
   id: string;
@@ -116,10 +125,22 @@ const slideOpts = {
   },
 };
 
+const incrementViews = async (id: string) => {
+  try {
+    const docRef = doc(db, "properties", id);
+    await updateDoc(docRef, {
+      views: increment(1),
+    });
+  } catch (error) {
+    console.error("Failed to increment views:", error);
+  }
+};
+
 const PropertyDetails: React.FC = () => {
   const { id } = useParams<RouteParams>();
   const history = useHistory();
   const { user } = useAuth();
+  const { get, set, ready } = useStorage();
 
   const [property, setProperty] = useState<Property>();
   const [details, setDetails] = useState<PropertyDetails>();
@@ -134,6 +155,7 @@ const PropertyDetails: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      //TODO: clean this up into a service
       const propertyDoc = await getDoc(doc(db, "properties", id));
       const detailsDoc = await getDoc(
         doc(db, "properties", id, "details", "data")
@@ -152,12 +174,40 @@ const PropertyDetails: React.FC = () => {
       if (detailsDoc.exists()) setDetails(detailsDoc.data() as PropertyDetails);
       if (userDoc.exists()) setUserContact(userDoc.data() as UserContact);
       setImages(imageDocs.docs.map((doc) => doc.data() as PropertyImages));
+      incrementViews(id);
     };
     console.log("Fetching data for property ID:", id);
     console.log("Property ID:", id);
 
     fetchData();
   }, [id, user?.uid]);
+
+  useEffect(() => {
+    if (!property) return;
+    const saveToViewedHistory = async () => {
+      const { title, price, imageUrl } = property;
+      const minimalProperty = { id, title, price, imageUrl };
+      console.log("id:", id);
+
+      const viewedHistory: (typeof minimalProperty)[] =
+        (await get("viewedHistory")) || [];
+
+      const updatedHistory = [
+        minimalProperty,
+        ...viewedHistory.filter((p) => p.id !== minimalProperty.id),
+      ];
+
+      if (updatedHistory.length > 10) {
+        updatedHistory.pop();
+      }
+
+      console.log("Updated history:", updatedHistory);
+
+      await set("viewedHistory", updatedHistory);
+    };
+
+    saveToViewedHistory();
+  }, [id, property, ready, set, get]);
 
   useEffect(() => {
     if (!viewerOpen) {
