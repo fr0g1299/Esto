@@ -63,6 +63,7 @@ import Chat from "./pages/Chat";
 import Folder from "./pages/Folder";
 import UserListings from "./pages/UserListings";
 import EditProperty from "./pages/EditProperty";
+import NotFound from "./pages/NotFound";
 
 setupIonicReact();
 
@@ -113,6 +114,7 @@ const App: React.FC = () => {
               />
               <Route exact path="/edit/:id" component={EditProperty} />
               <PrivateRoute exact path="/create" component={Create} />
+              <Route exact path="/not-found" component={NotFound} />
               <Route exact path="/" render={() => <Redirect to="/home" />} />
             </IonRouterOutlet>
 
@@ -132,6 +134,10 @@ const App: React.FC = () => {
                     icon={<IonIcon icon={search} className="text-2xl" />}
                     className="custom-ripple-btn"
                   />
+                  <div className="dots">
+                    <span className="dot" />
+                    <span className="dot" />
+                  </div>
                 </div>
                 <IonLabel className="search-label">Hledat</IonLabel>
               </IonTabButton>
