@@ -41,6 +41,7 @@ import {
   pencil,
   notifications,
   notificationsOutline,
+  shareOutline,
 } from "ionicons/icons";
 
 import { EffectFade, Autoplay } from "swiper/modules";
@@ -59,6 +60,7 @@ import { isPropertyFavorited } from "../services/favoritesService";
 import { useAuth } from "../hooks/useAuth";
 import { useStorage } from "../hooks/useStorage";
 import { Preferences } from "@capacitor/preferences";
+import { Share } from "@capacitor/share";
 
 interface RouteParams {
   id: string;
@@ -250,10 +252,6 @@ const PropertyDetails: React.FC = () => {
     setIsFavorite(updated);
   };
 
-  // const handleNotification = async () {
-
-  // }
-
   const handleNotification = async () => {
     if (!user?.uid || !id) return;
 
@@ -276,6 +274,17 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+    if (!property) return;
+    await Share.share({
+      title: property.title,
+      text: `${property.title}\n ${property.price.toLocaleString("cs")} Kč\n ${
+        property.disposition
+      }`,
+      dialogTitle: "Sdílet inzerát",
+    });
+  };
+
   if (!property || !details)
     return <IonContent fullscreen>Loading...</IonContent>;
 
@@ -285,6 +294,14 @@ const PropertyDetails: React.FC = () => {
         <IonToolbar>
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home"></IonBackButton>
+          </IonButtons>
+          <IonButtons slot="start">
+            <IonIcon
+              icon={shareOutline}
+              slot="icon-only"
+              className="toolbar-icon"
+              onClick={handleShare}
+            />
           </IonButtons>
           {user?.uid === property.ownerId ? (
             <IonButtons slot="end">
