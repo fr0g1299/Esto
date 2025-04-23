@@ -20,6 +20,7 @@ import {
   deleteObject,
   listAll,
 } from "firebase/storage";
+import { sendPriceDropNotification } from "./notificationsService";
 
 interface Property {
   ownerId: string;
@@ -164,6 +165,7 @@ function extractStoragePathFromUrl(url: string): string | null {
   }
   return null;
 }
+
 export const updateProperty = async (
   propertyId: string,
   propertyData: Partial<Omit<Property, "createdAt" | "updatedAt">>,
@@ -173,6 +175,17 @@ export const updateProperty = async (
   removedImages: UploadedImage[] = []
 ) => {
   const propertyRef = doc(db, "properties", propertyId);
+
+  const prevSnapshot = await getDoc(propertyRef);
+  const previousPrice = prevSnapshot.data()?.price;
+
+  if (
+    previousPrice &&
+    propertyData.price != null &&
+    propertyData.price < previousPrice
+  ) {
+    await sendPriceDropNotification(propertyId, propertyData.price);
+  }
 
   await updateDoc(propertyRef, {
     ...propertyData,

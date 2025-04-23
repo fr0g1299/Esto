@@ -25,6 +25,7 @@ import {
   GeoPoint,
   increment,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useHistory } from "react-router";
@@ -38,6 +39,8 @@ import {
   chatboxEllipsesOutline,
   checkmarkOutline,
   pencil,
+  notifications,
+  notificationsOutline,
 } from "ionicons/icons";
 
 import { EffectFade, Autoplay } from "swiper/modules";
@@ -55,6 +58,7 @@ import FavoriteSelectorModal from "../components/ui/FavoriteSelectorModal";
 import { isPropertyFavorited } from "../services/favoritesService";
 import { useAuth } from "../hooks/useAuth";
 import { useStorage } from "../hooks/useStorage";
+import { Preferences } from "@capacitor/preferences";
 
 interface RouteParams {
   id: string;
@@ -141,6 +145,8 @@ const PropertyDetails: React.FC = () => {
   const history = useHistory();
   const { user } = useAuth();
   const { get, set, ready } = useStorage();
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const [property, setProperty] = useState<Property>();
   const [details, setDetails] = useState<PropertyDetails>();
@@ -179,11 +185,30 @@ const PropertyDetails: React.FC = () => {
       setImages(imageDocs.docs.map((doc) => doc.data() as PropertyImages));
       incrementViews(id);
     };
+
+    const checkNotificationPref = async () => {
+      if (!user) return;
+      const prefDoc = await getDoc(
+        doc(db, "users", user.uid, "notificationsPreferences", id)
+      );
+
+      if (prefDoc.exists() && prefDoc.data().notifyOnPriceDrop) {
+        setNotificationsEnabled(true);
+      }
+    };
+
+    const notificationsEnabled = async () => {
+      const { value } = await Preferences.get({ key: "pushEnabled" });
+      setPushEnabled(value === "true");
+    };
+
     console.log("Fetching data for property ID:", id);
     console.log("Property ID:", id);
 
     fetchData();
-  }, [id, user?.uid, history]);
+    notificationsEnabled();
+    checkNotificationPref();
+  }, [id, user, history]);
 
   useEffect(() => {
     if (!property) return;
@@ -225,6 +250,32 @@ const PropertyDetails: React.FC = () => {
     setIsFavorite(updated);
   };
 
+  // const handleNotification = async () {
+
+  // }
+
+  const handleNotification = async () => {
+    if (!user?.uid || !id) return;
+
+    try {
+      const notificationPreference = {
+        notifyOnPriceDrop: true,
+        createdAt: new Date(),
+      };
+
+      await setDoc(
+        doc(db, "users", user.uid, "notificationsPreferences", id),
+        notificationPreference
+      );
+
+      setNotificationsEnabled(!notificationsEnabled);
+
+      console.log("Notification preference saved successfully.");
+    } catch (error) {
+      console.error("Failed to save notification preference:", error);
+    }
+  };
+
   if (!property || !details)
     return <IonContent fullscreen>Loading...</IonContent>;
 
@@ -235,7 +286,7 @@ const PropertyDetails: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home"></IonBackButton>
           </IonButtons>
-          {user?.uid === property.ownerId && (
+          {user?.uid === property.ownerId ? (
             <IonButtons slot="end">
               <IonIcon
                 icon={pencil}
@@ -244,7 +295,18 @@ const PropertyDetails: React.FC = () => {
                 onClick={() => history.push(`/edit/${id}`)}
               />
             </IonButtons>
-          )}
+          ) : pushEnabled ? (
+            <IonButtons slot="end">
+              <IonIcon
+                icon={
+                  notificationsEnabled ? notifications : notificationsOutline
+                }
+                slot="icon-only"
+                className="toolbar-icon"
+                onClick={handleNotification}
+              />
+            </IonButtons>
+          ) : null}
           <IonButtons slot="end">
             <IonIcon
               icon={isFavorite ? heart : heartOutline}

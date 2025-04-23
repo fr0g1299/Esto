@@ -1,5 +1,6 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
+import * as functions from "firebase-functions";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -46,5 +47,42 @@ export const updateTrending = onSchedule(
 
     await batch.commit();
     console.log("Trending properties updated successfully.");
+  }
+);
+/**
+ * Sends a push notification to a specific device.
+ * This function is triggered via HTTPS callable function.
+ * It requires the device token, title, body, and optional payload.
+ *
+ * @param {Object} request - The request object containing the notification data.
+ * @param {Object} context - The context object containing authentication information.
+ */
+export const sendPushNotification = functions.https.onCall(
+  async (request, context) => {
+    const { to, title, body, payload } = request.data;
+
+    if (!to || !title || !body) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Missing fields"
+      );
+    }
+
+    const message: admin.messaging.Message = {
+      token: to,
+      notification: {
+        title,
+        body,
+      },
+      data: payload || {},
+    };
+
+    try {
+      const res = await admin.messaging().send(message);
+      return { success: true, result: res };
+    } catch (err) {
+      console.error("Push error:", err);
+      throw new functions.https.HttpsError("internal", "Failed to send push");
+    }
   }
 );

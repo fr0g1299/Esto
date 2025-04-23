@@ -16,16 +16,17 @@ import Home from "./pages/Home";
 import SearchMap from "./pages/SearchMap";
 import Search from "./pages/Search";
 import Collection from "./pages/Collection";
-import Profile from "./pages/Profile";
 import PropertyDetails from "./pages/PropertyDetails";
 import Notifications from "./pages/Notifications";
 import Create from "./pages/Create";
 import SearchResults from "./pages/SearchResults";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { home, search, albums, person, mapOutline } from "ionicons/icons";
+import { home, search, albums, mapOutline, settings } from "ionicons/icons";
 import RippleButton from "./components/ui/RippleButton";
 import { AuthProvider } from "./contexts/AuthProvider";
+import { Preferences } from "@capacitor/preferences";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -64,11 +65,15 @@ import Folder from "./pages/Folder";
 import UserListings from "./pages/UserListings";
 import EditProperty from "./pages/EditProperty";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
+import { useAuth } from "./hooks/useAuth";
+import { setNotificationPreference } from "./services/notificationsService";
 
 setupIonicReact();
 
 const App: React.FC = () => {
   const { get, ready } = useStorage();
+  const { user } = useAuth();
 
   useEffect(() => {
     const applyInitialTheme = async () => {
@@ -78,8 +83,37 @@ const App: React.FC = () => {
       document.documentElement.classList.toggle("ion-palette-dark", darkTheme);
     };
 
+    const initPushPreference = async () => {
+      const stored = await Preferences.get({ key: "pushNotificationsEnabled" });
+
+      if (!stored.value && user) {
+        await setNotificationPreference(user.uid, true);
+      }
+    };
+
     applyInitialTheme();
-  }, [get, ready]);
+    initPushPreference();
+  }, [get, ready, user]);
+
+  useEffect(() => {
+    PushNotifications.addListener("registrationError", (err) => {
+      console.error("Push registration error:", err);
+    });
+
+    PushNotifications.addListener(
+      "pushNotificationReceived",
+      (notification) => {
+        console.log("Push received", notification);
+      }
+    );
+
+    PushNotifications.addListener(
+      "pushNotificationActionPerformed",
+      (result) => {
+        console.log("Notification action performed", result.notification);
+      }
+    );
+  }, []);
 
   return (
     <IonApp>
@@ -91,7 +125,7 @@ const App: React.FC = () => {
               <Route exact path="/searchmap" component={SearchMap} />
               <Route exact path="/search" component={Search} />
               <Route exact path="/collections" component={Collection} />
-              <Route exact path="/profile" component={Profile} />
+              <Route exact path="/settings" component={Settings} />
               <Route exact path="/details/:id" component={PropertyDetails} />
               <Route exact path="/results" component={SearchResults} />
               <Route exact path="/login" component={Login} />
@@ -147,9 +181,9 @@ const App: React.FC = () => {
                 <IonLabel>Kolekce</IonLabel>
               </IonTabButton>
 
-              <IonTabButton tab="profile" href="/profile">
-                <IonIcon icon={person} />
-                <IonLabel>Profil</IonLabel>
+              <IonTabButton tab="settings" href="/settings">
+                <IonIcon icon={settings} />
+                <IonLabel>Nastavení</IonLabel>
               </IonTabButton>
             </IonTabBar>
           </IonTabs>
