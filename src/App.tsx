@@ -61,6 +61,7 @@ import "./styles/global.css";
 import "./styles/App.css";
 import PrivateRoute from "./components/PrivateRoute";
 import Chat from "./pages/Chat";
+import Chats from "./pages/Chats";
 import Folder from "./pages/Folder";
 import UserListings from "./pages/UserListings";
 import EditProperty from "./pages/EditProperty";
@@ -130,7 +131,8 @@ const App: React.FC = () => {
               <Route exact path="/results" component={SearchResults} />
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
-              <Route exact path="/chat" component={Chat} />
+              <Route exact path="/chat/:chatId" component={Chat} />
+              <Route exact path="/chats" component={Chats} />
               <Route
                 exact
                 path="/collection/folder/:folderId"

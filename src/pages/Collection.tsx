@@ -77,7 +77,7 @@ const Collection: React.FC = () => {
 
       console.log("useIonViewDidEnter...");
 
-      setAccordionKey((prev) => prev + 1);
+      setAccordionKey((prev) => prev + 1); // TODO: too aggressive
       const history: HistoryProps[] = (await get("viewedHistory")) || [];
       setViewedHistory(history);
     };
@@ -89,7 +89,7 @@ const Collection: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Collection</IonTitle>
+          <IonTitle>Kolekce</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="ion-padding">
@@ -144,6 +144,11 @@ const Collection: React.FC = () => {
           <IonAccordion value="userListings" disabled={!user} toggleIcon="">
             <IonItem routerLink="/userListings" slot="header">
               <IonLabel>Moje inzeráty</IonLabel>
+            </IonItem>
+          </IonAccordion>
+          <IonAccordion value="chats" disabled={!user} toggleIcon="">
+            <IonItem routerLink="/chats" slot="header">
+              <IonLabel>Moje zprávy</IonLabel>
             </IonItem>
           </IonAccordion>
         </IonAccordionGroup>

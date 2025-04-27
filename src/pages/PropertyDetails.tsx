@@ -61,6 +61,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useStorage } from "../hooks/useStorage";
 import { Preferences } from "@capacitor/preferences";
 import { Share } from "@capacitor/share";
+import { getOrCreateChat } from "../services/chatService";
 
 interface RouteParams {
   id: string;
@@ -324,15 +325,17 @@ const PropertyDetails: React.FC = () => {
               />
             </IonButtons>
           ) : null}
-          <IonButtons slot="end">
-            <IonIcon
-              icon={isFavorite ? heart : heartOutline}
-              slot="icon-only"
-              color="danger"
-              className="toolbar-icon"
-              onClick={() => setShowFavoriteModal(true)}
-            />
-          </IonButtons>
+          {user && (
+            <IonButtons slot="end">
+              <IonIcon
+                icon={isFavorite ? heart : heartOutline}
+                slot="icon-only"
+                color="danger"
+                className="toolbar-icon"
+                onClick={() => setShowFavoriteModal(true)}
+              />
+            </IonButtons>
+          )}
         </IonToolbar>
       </IonHeader>
 
@@ -381,11 +384,24 @@ const PropertyDetails: React.FC = () => {
             id="click-trigger"
             size={"large"}
           ></IonIcon>
-          <IonIcon
-            icon={chatboxEllipsesOutline}
-            size={"large"}
-            onClick={() => history.push("/chat")}
-          ></IonIcon>
+          {user?.uid != property.ownerId && (
+            <IonIcon
+              icon={chatboxEllipsesOutline}
+              size={"large"}
+              onClick={async () => {
+                const chatId = await getOrCreateChat(
+                  user?.uid ?? "",
+                  property.ownerId,
+                  id,
+                  property.title
+                );
+                history.push({
+                  pathname: `/chat/${chatId}`,
+                  state: { userContact, propertyId: id },
+                });
+              }}
+            ></IonIcon>
+          )}
           <IonPopover trigger="click-trigger">
             <IonList>
               <IonItem>

@@ -94,3 +94,7 @@ ion-tab-bar {
   cursor: pointer;
   overflow: visible;
 }
+
+.hidden ion-tab-bar {
+  display: none !important;
+}
