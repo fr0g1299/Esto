@@ -1,9 +1,23 @@
 .ion-chip-checked {
-  background-color: #ff9d6f;
+  background-color: #ff8953;
   border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
 }
 
 .ion-chip-unchecked {
   background-color: transparent;
   border: 1px solid #3f3f3f;
+  transition: all 0.2s ease-in-out;
+}
+
+.search-page {
+  .input-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .accordion-group {
+    margin-bottom: 25px;
+  }
 }

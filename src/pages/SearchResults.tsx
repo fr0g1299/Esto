@@ -13,6 +13,8 @@ import {
   IonCardContent,
   IonInfiniteScroll,
   IonInfiniteScrollContent,
+  IonBackButton,
+  IonButtons,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useLocation, useHistory } from "react-router-dom";
@@ -23,22 +25,35 @@ import {
   getDocs,
   startAfter,
   limit,
-  orderBy,
   QueryConstraint,
   DocumentData,
   QueryDocumentSnapshot,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import {
+  geocodeAddress,
+  getBoundingBoxFromRadius,
+} from "../services/geocodingService";
+
+import "../styles/SearchResults.css";
 
 interface Property {
   id: string;
+  ownerId: string;
   title: string;
   price: number;
+  status: "Available" | "Sold";
+  address: string;
+  city: string;
+  type: "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa";
+  disposition: string;
   imageUrl: string;
-  balcony: boolean;
-  garden: boolean;
-  city?: string;
-  views: number;
+  geolocation: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 const useQueryParams = () => {
@@ -47,8 +62,9 @@ const useQueryParams = () => {
 };
 
 const SearchResults: React.FC = () => {
+  useTabBarScrollEffect();
   const history = useHistory();
-  const [results, setResults] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastDoc, setLastDoc] =
     useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -57,8 +73,8 @@ const SearchResults: React.FC = () => {
 
   const PAGE_SIZE = 5;
 
-  const fetchResults = async (isLoadMore = false) => {
-    if (!isLoadMore) {
+  const fetchResults = async (isPaginating = false) => {
+    if (!isPaginating) {
       setLoading(true);
     }
 
@@ -66,58 +82,120 @@ const SearchResults: React.FC = () => {
       console.log("Fetching");
       const propertyRef = collection(db, "properties");
       const constraints: QueryConstraint[] = [
-        where("views", ">=", 0),
-        orderBy("views", "asc"),
+        orderBy("createdAt", "desc"),
         limit(PAGE_SIZE),
       ];
 
       // Filters
-      if (queryParams.get("balcony") === "true") {
-        constraints.push(where("balcony", "==", true));
-      }
-
-      if (queryParams.get("garden") === "true") {
-        constraints.push(where("garden", "==", true));
-      }
-
       if (queryParams.get("city")) {
         constraints.push(where("city", "==", queryParams.get("city")));
       }
+      if (queryParams.get("address")) {
+        const radius = parseFloat(queryParams.get("radius") || "15");
+        try {
+          const { latitude, longitude } = await geocodeAddress(
+            queryParams.get("address")!
+          );
+          const { sw, ne } = getBoundingBoxFromRadius(
+            latitude,
+            longitude,
+            radius
+          );
 
-      if (isLoadMore && lastDoc) {
+          constraints.push(
+            where("geolocation.latitude", "<=", ne.lat),
+            where("geolocation.latitude", ">=", sw.lat),
+            where("geolocation.longitude", "<=", ne.lng),
+            where("geolocation.longitude", ">=", sw.lng)
+          );
+        } catch (err) {
+          console.error("Error geocoding address:", err);
+        }
+      } else {
+        constraints.push(
+          where("geolocation.latitude", "<=", 90),
+          where("geolocation.latitude", ">=", -90),
+          where("geolocation.longitude", "<=", 180),
+          where("geolocation.longitude", ">=", -180)
+        );
+      }
+      if (queryParams.get("type")) {
+        constraints.push(where("type", "==", queryParams.get("type")));
+      }
+      if (queryParams.get("disposition")) {
+        constraints.push(
+          where("disposition", "==", queryParams.get("disposition"))
+        );
+      }
+
+      // Price
+      constraints.push(
+        where("price", ">=", parseInt(queryParams.get("minPrice") || "0"))
+      );
+      if (queryParams.get("maxPrice")) {
+        constraints.push(
+          where(
+            "price",
+            "<=",
+            parseInt(queryParams.get("maxPrice") || "99999999")
+          )
+        );
+      }
+
+      // Chips
+      if (queryParams.get("garage") === "true") {
+        constraints.push(where("garage", "==", true));
+      }
+      if (queryParams.get("elevator") === "true") {
+        constraints.push(where("elevator", "==", true));
+      }
+      if (queryParams.get("gasConnection") === "true") {
+        constraints.push(where("gasConnection", "==", true));
+      }
+      if (queryParams.get("threePhaseElectricity") === "true") {
+        constraints.push(where("threePhaseElectricity", "==", true));
+      }
+      if (queryParams.get("basement") === "true") {
+        constraints.push(where("basement", "==", true));
+      }
+      if (queryParams.get("furnished") === "true") {
+        constraints.push(where("furnished", "==", true));
+      }
+      if (queryParams.get("balcony") === "true") {
+        constraints.push(where("balcony", "==", true));
+      }
+      if (queryParams.get("garden") === "true") {
+        constraints.push(where("garden", "==", true));
+      }
+      if (queryParams.get("solarPanels") === "true") {
+        constraints.push(where("solarPanels", "==", true));
+      }
+      if (queryParams.get("pool") === "true") {
+        constraints.push(where("pool", "==", true));
+      }
+
+      // Pagination
+      if (isPaginating && lastDoc) {
         constraints.push(startAfter(lastDoc));
       }
 
-      console.log("Constraints:", constraints);
-      const q = query(propertyRef, ...constraints);
-      console.log("Query created:", q);
-      const snapshot = await getDocs(q);
+      const queryRef = query(propertyRef, ...constraints);
+      const snapshot = await getDocs(queryRef);
 
-      const newData: Property[] = snapshot.docs.map((doc) => ({
+      const results = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Property, "id">),
       }));
 
-      console.log("Fetched data:", newData);
-      const maxPrice = queryParams.get("maxPrice");
-      const minPrice = queryParams.get("minPrice");
-      const filtered = newData.filter((item) => {
-        const isBelowMaxPrice = maxPrice
-          ? item.price <= parseInt(maxPrice)
-          : true;
-        const isAboveMinPrice = minPrice
-          ? item.price >= parseInt(minPrice)
-          : true;
-        return isBelowMaxPrice && isAboveMinPrice;
-      });
+      if (isPaginating) {
+        setProperties((prev) => [...prev, ...results]);
+      } else {
+        setProperties(results);
+      }
 
-      const sorted = filtered.sort((a, b) => a.views - b.views);
-
-      const newLastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-      setLastDoc(newLastDoc);
-
-      setResults((prev) => (isLoadMore ? [...prev, ...sorted] : sorted));
-      setHasMore(snapshot.docs.length === PAGE_SIZE);
+      // Update cursor and hasMore
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
+      setHasMore(snapshot.size === PAGE_SIZE);
     } catch (error) {
       console.error("Failed to fetch properties:", error);
     } finally {
@@ -133,20 +211,23 @@ const SearchResults: React.FC = () => {
   }, [queryParams]);
 
   return (
-    <IonPage>
+    <IonPage className="search-results-page">
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Search Results</IonTitle>
+          <IonButtons slot="start">
+            <IonBackButton></IonBackButton>
+          </IonButtons>
+          <IonTitle>Výsledky hledání</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="ion-padding">
-        {loading && !results.length ? (
+      <IonContent fullscreen className="ion-padding" scrollEvents>
+        {loading && !properties.length ? (
           <IonSpinner name="crescent" />
-        ) : results.length === 0 ? (
-          <IonText>No matching properties found.</IonText>
+        ) : properties.length === 0 ? (
+          <IonText>Nenalezeny žádné odpovídající nemovitosti.</IonText> //TODO: make this prettier
         ) : (
           <>
-            {results.map((property) => (
+            {properties.map((property) => (
               <IonCard
                 key={property.id}
                 className="property-card-list"
@@ -174,7 +255,7 @@ const SearchResults: React.FC = () => {
                 (event.target as HTMLIonInfiniteScrollElement).complete();
               }}
             >
-              <IonInfiniteScrollContent loadingText="Loading more..." />
+              <IonInfiniteScrollContent loadingText="Načítám další..." />
             </IonInfiniteScroll>
           </>
         )}

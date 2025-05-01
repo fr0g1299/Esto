@@ -19,3 +19,26 @@ export const geocodeAddress = async (
     longitude: location.lng,
   };
 };
+
+export function getBoundingBoxFromRadius(
+  centerLat: number,
+  centerLng: number,
+  radiusInKm: number
+) {
+  console.log(centerLat);
+  console.log(centerLng);
+  const latDelta = radiusInKm / 111.32;
+  const lngDelta =
+    radiusInKm / (111.32 * Math.cos(centerLat * (Math.PI / 180)));
+
+  return {
+    sw: {
+      lat: centerLat - latDelta,
+      lng: centerLng - lngDelta,
+    },
+    ne: {
+      lat: centerLat + latDelta,
+      lng: centerLng + lngDelta,
+    },
+  };
+}
