@@ -393,7 +393,8 @@ const PropertyDetails: React.FC = () => {
                   user?.uid ?? "",
                   property.ownerId,
                   id,
-                  property.title
+                  property.title,
+                  property.imageUrl
                 );
                 history.push({
                   pathname: `/chat/${chatId}`,

@@ -23,7 +23,8 @@ export const getOrCreateChat = async (
   user1: string,
   user2: string,
   propertyId: string,
-  title?: string
+  title?: string,
+  imageUrl?: string
 ) => {
   const chatsRef = collection(db, "chats");
   const chatId = generateChatId(user1, user2, propertyId);
@@ -59,6 +60,7 @@ export const getOrCreateChat = async (
     },
     propertyId,
     title,
+    imageUrl,
     lastMessage: "",
     lastTimestamp: serverTimestamp(),
   });

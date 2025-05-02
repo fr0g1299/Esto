@@ -9,6 +9,7 @@ import {
   IonLabel,
   IonText,
   IonSpinner,
+  IonThumbnail,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
@@ -29,6 +30,7 @@ interface Chat {
   lastMessage: string;
   otherUserFirstName: string;
   otherUserLastName: string;
+  imageUrl: string;
 }
 
 const Chats: React.FC = () => {
@@ -71,6 +73,7 @@ const Chats: React.FC = () => {
           title: data.title as string,
           propertyId: data.propertyId as string,
           lastMessage: data.lastMessage as string,
+          imageUrl: data.imageUrl,
           otherUserFirstName: otherUser.firstName,
           otherUserLastName: otherUser.lastName,
         };
@@ -114,6 +117,9 @@ const Chats: React.FC = () => {
                   })
                 }
               >
+                <IonThumbnail slot="start">
+                  <img src={chat.imageUrl} alt="" />
+                </IonThumbnail>
                 <IonLabel>
                   <h2>{chat.title}</h2>
                   <p>{chat.lastMessage || "Začněte konverzaci"}</p>
