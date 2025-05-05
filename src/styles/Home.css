@@ -38,6 +38,36 @@
     margin-bottom: 20px;
   }
 
+  .property-card-swiper ion-card-header {
+    flex: 1;
+    padding: 8px;
+  }
+
+  .property-card-swiper ion-card-content {
+    padding: 8px;
+  }
+
+  .property-card-swiper ion-card-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .title-default {
+    font-size: 16px;
+    line-height: 1.4em;
+    max-height: 2.8em;
+  }
+
+  .title-large {
+    font-size: 20px;
+    line-height: 1.4em;
+    max-height: 2.8em;
+  }
+
   .property-card-swiper ion-img::part(image) {
     width: 100%;
     height: 200px;
@@ -50,6 +80,7 @@
     margin-right: 15px;
     margin-bottom: 20px;
     border-radius: 12px;
+    max-height: 315px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     padding: 0px;
   }

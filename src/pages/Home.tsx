@@ -14,6 +14,8 @@ import {
   IonBadge,
   IonImg,
   IonButtons,
+  IonCardSubtitle,
+  IonSkeletonText,
 } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { notificationsOutline, add } from "ionicons/icons";
@@ -22,7 +24,7 @@ import { useHistory } from "react-router";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 
 import { db } from "../firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectCoverflow } from "swiper/modules";
@@ -45,18 +47,19 @@ const slideOpts = {
   },
   modules: [Autoplay, EffectCoverflow],
   autoplay: {
-    delay: 3500,
+    delay: 4500,
     disableOnInteraction: false,
     loop: true,
   },
 };
 
-interface ClosestProperty {
+interface NewestProperty {
   id: string;
   title: string;
   price: number;
+  city: string;
   imageUrl: string;
-} // new properties, maybe even in your area
+}
 
 interface TrendingProperty {
   id: string;
@@ -76,11 +79,16 @@ const fetchTrendingProperties = async () => {
   }));
 };
 
-const fetchClosestProperties = async () => {
-  const propertiesSnapshot = await getDocs(collection(db, "properties"));
+const fetchNewestProperties = async () => {
+  const q = query(
+    collection(db, "properties"),
+    orderBy("createdAt", "desc"),
+    limit(5)
+  );
+  const propertiesSnapshot = await getDocs(q);
   return propertiesSnapshot.docs.map((doc) => ({
     id: doc.id,
-    ...(doc.data() as Omit<ClosestProperty, "id">),
+    ...(doc.data() as Omit<NewestProperty, "id">),
   }));
 };
 
@@ -88,11 +96,11 @@ const Home: React.FC = () => {
   const { user } = useAuth();
   const history = useHistory();
   useTabBarScrollEffect();
-  // const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [trendingProperties, setTrendingProperties] = useState<
     TrendingProperty[]
   >([]);
-  const [closestProperties, setClosestProperties] = useState<ClosestProperty[]>(
+  const [newestProperties, setNewestProperties] = useState<NewestProperty[]>(
     []
   );
 
@@ -100,15 +108,14 @@ const Home: React.FC = () => {
     const fetchData = async () => {
       try {
         const trending = await fetchTrendingProperties();
-        const closest = await fetchClosestProperties();
+        const newest = await fetchNewestProperties();
         setTrendingProperties(trending);
-        setClosestProperties(closest);
+        setNewestProperties(newest);
       } catch (error) {
         console.error("Error fetching properties:", error);
+      } finally {
+        setLoading(false);
       }
-      // finally {
-      //   setLoading(false);
-      // }
     };
 
     fetchData();
@@ -123,13 +130,6 @@ const Home: React.FC = () => {
     }
   };
 
-  // if (loading) {
-  //   return (
-  //     <IonContent fullscreen className="ion-padding">
-  //       Loading...
-  //     </IonContent>
-  //   );
-  // } else {
   return (
     <IonPage className="home-page">
       <IonContent fullscreen scrollEvents>
@@ -144,7 +144,7 @@ const Home: React.FC = () => {
               </IonText>
             </IonCol>
 
-            {user && (
+            {user ? (
               <IonCol size="auto">
                 <IonButton
                   fill="clear"
@@ -170,6 +170,10 @@ const Home: React.FC = () => {
                   </div>
                 </IonButton>
               </IonCol>
+            ) : (
+              <IonButton fill="outline" onClick={() => history.push("/login")}>
+                <IonText className="ion-padding">Přihlásit se</IonText>
+              </IonButton>
             )}
           </IonRow>
         </IonGrid>
@@ -197,51 +201,124 @@ const Home: React.FC = () => {
         </IonButtons>
 
         <Swiper {...slideOpts}>
-          {trendingProperties.map((trending) => (
-            <SwiperSlide
-              key={trending.id}
-              onClick={() => history.push(`/details/${trending.propertyId}`)}
-            >
-              <IonCard className="property-card-swiper">
-                <IonImg src={trending.imageUrl} alt={trending.title} />
-                <IonCardHeader>
-                  <IonCardTitle>{trending.title}</IonCardTitle>
-                  {/* <IonCardSubtitle>{trending.city}</IonCardSubtitle> */}
-                </IonCardHeader>
-                <IonCardContent>
-                  <strong>{trending.price.toLocaleString()} $</strong>
-                </IonCardContent>
-              </IonCard>
-            </SwiperSlide>
-          ))}
+          {loading
+            ? [...Array(5)].map((_, index) => (
+                <SwiperSlide key={index}>
+                  <IonCard className="property-card-swiper">
+                    <IonSkeletonText
+                      animated
+                      style={{
+                        width: "100%",
+                        height: "200px",
+                        borderRadius: "12px",
+                        margin: "0px",
+                      }}
+                    />
+                    <IonCardHeader>
+                      <IonCardTitle>
+                        <IonSkeletonText
+                          animated
+                          style={{ width: "60%", height: "20px" }}
+                        />
+                      </IonCardTitle>
+                    </IonCardHeader>
+                    <IonCardContent>
+                      <IonSkeletonText
+                        animated
+                        style={{ width: "30%", height: "13px" }}
+                      />
+                    </IonCardContent>
+                  </IonCard>
+                </SwiperSlide>
+              ))
+            : trendingProperties.map((trending) => (
+                <SwiperSlide
+                  key={trending.id}
+                  onClick={() =>
+                    history.push(`/details/${trending.propertyId}`)
+                  }
+                >
+                  <IonCard className="property-card-swiper">
+                    <IonImg src={trending.imageUrl} alt={trending.title} />
+                    <IonCardHeader>
+                      <IonCardTitle
+                        className={
+                          trending.title.length <= 20
+                            ? "title-large"
+                            : "title-default"
+                        }
+                      >
+                        {trending.title}
+                      </IonCardTitle>
+                    </IonCardHeader>
+                    <IonCardContent>
+                      <strong>{trending.price.toLocaleString("cs")} Kč</strong>
+                    </IonCardContent>
+                  </IonCard>
+                </SwiperSlide>
+              ))}
         </Swiper>
 
         <IonText>
           <h2 className="heading-text ion-align-items-start ion-justify-content-between ion-padding-horizontal">
-            Nemovitosti, které jsou <br />
-            ti <strong>nejblíže</strong>
+            <strong>Nejnovější</strong> nemovitosti
           </h2>
         </IonText>
-        {closestProperties.map((property) => (
-          <IonCard
-            key={property.id}
-            className="property-card-list"
-            onClick={() => history.push(`/details/${property.id}`)}
-          >
-            <IonImg
-              src={property.imageUrl}
-              alt={property.title}
-              className="card-image"
-            />
-            <IonCardHeader>
-              <IonCardTitle>{property.title}</IonCardTitle>
-              {/* <IonCardSubtitle>{property.city}</IonCardSubtitle> */}
-            </IonCardHeader>
-            <IonCardContent>
-              <strong>{property.price.toLocaleString()} $</strong>
-            </IonCardContent>
-          </IonCard>
-        ))}
+
+        {loading
+          ? [...Array(5)].map((_, index) => (
+              <IonCard key={index} className="property-card-list">
+                <IonSkeletonText
+                  animated
+                  style={{
+                    width: "100%",
+                    height: "200px",
+                    borderRadius: "8px",
+                    margin: "0px",
+                  }}
+                />
+                <IonCardHeader>
+                  <IonCardTitle>
+                    <IonSkeletonText
+                      animated
+                      style={{ width: "60%", height: "16px" }}
+                    />
+                  </IonCardTitle>
+                  <IonCardSubtitle>
+                    <IonSkeletonText
+                      animated
+                      style={{ width: "40%", height: "9px" }}
+                    />
+                  </IonCardSubtitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <IonSkeletonText
+                    animated
+                    style={{ width: "30%", height: "17px" }}
+                  />
+                </IonCardContent>
+              </IonCard>
+            ))
+          : newestProperties.map((property) => (
+              <IonCard
+                key={property.id}
+                className="property-card-list"
+                onClick={() => history.push(`/details/${property.id}`)}
+              >
+                <IonImg
+                  src={property.imageUrl}
+                  alt={property.title}
+                  className="card-image"
+                />
+                <IonCardHeader>
+                  <IonCardTitle>{property.title}</IonCardTitle>
+                  <IonCardSubtitle>{property.city}</IonCardSubtitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <strong>{property.price.toLocaleString("cs")} Kč</strong>
+                </IonCardContent>
+              </IonCard>
+            ))}
 
         <IonButton
           expand="block"
