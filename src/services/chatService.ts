@@ -1,9 +1,7 @@
 import { db } from "../firebase";
 import {
   collection,
-  getDocs,
   query,
-  where,
   addDoc,
   serverTimestamp,
   setDoc,
@@ -26,27 +24,24 @@ export const getOrCreateChat = async (
   title?: string,
   imageUrl?: string
 ) => {
-  const chatsRef = collection(db, "chats");
   const chatId = generateChatId(user1, user2, propertyId);
+  const chatDocRef = doc(db, "chats", chatId);
 
-  const existingChatDoc = await getDocs(
-    query(chatsRef, where("chatId", "==", chatId))
-  );
+  const chatDoc = await getDoc(chatDocRef);
 
-  if (!existingChatDoc.empty) {
-    return existingChatDoc.docs[0].id; // Chat already exists
+  if (chatDoc.exists()) {
+    return chatDoc.id; // Chat already exists
   }
 
-  // Fetch user details (just once)
+  // Fetch user details
   const user1Doc = await getDoc(doc(db, "users", user1));
   const user2Doc = await getDoc(doc(db, "users", user2));
 
   const user1Data = user1Doc.data();
   const user2Data = user2Doc.data();
 
-  // Create new chat
-  const newChatRef = await addDoc(chatsRef, {
-    chatId,
+  // Create new chat with the specific document ID
+  await setDoc(chatDocRef, {
     participants: [user1, user2],
     participantDetails: {
       [user1]: {
@@ -65,7 +60,7 @@ export const getOrCreateChat = async (
     lastTimestamp: serverTimestamp(),
   });
 
-  return newChatRef.id;
+  return chatId;
 };
 
 export const sendMessage = async (
