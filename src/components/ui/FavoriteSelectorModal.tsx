@@ -51,7 +51,7 @@ const FavoriteSelectorModal: React.FC<Props> = ({
   const [folders, setFolders] = useState<FavoriteFolder[]>([]);
   const [note, setNote] = useState("");
   const [newFolderTitle, setNewFolderTitle] = useState("");
-  const [present] = useIonToast();
+  const [showToast] = useIonToast();
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
   const [initialFolders, setInitialFolders] = useState<string[]>([]);
 
@@ -97,19 +97,25 @@ const FavoriteSelectorModal: React.FC<Props> = ({
 
     await Promise.all([...addPromises, ...removePromises]);
 
-    present("Favorites updated", 2000);
+    showToast("Oblíbené položky byly aktualizovány", 2000);
     onClose();
   };
 
   const handleCreateFolder = async () => {
     if (!user || !newFolderTitle.trim()) return;
 
-    const newId = await createFavoriteFolder(user.uid, newFolderTitle);
+    const result = await createFavoriteFolder(user.uid, newFolderTitle.trim());
 
-    setSelectedFolders((prev) => [...prev, newId]);
+    if (!result.success) {
+      showToast(result.error!, 2500);
+      return;
+    }
+
+    // Folder created successfully
+    setSelectedFolders((prev) => [...prev, result.id!]);
     setFolders((prev) => [
       ...prev,
-      { id: newId, title: newFolderTitle, propertyCount: 0 },
+      { id: result.id!, title: newFolderTitle.trim(), propertyCount: 0 },
     ]);
     setNewFolderTitle("");
   };
@@ -161,7 +167,7 @@ const FavoriteSelectorModal: React.FC<Props> = ({
           <IonInput
             placeholder="Název nové složky"
             value={newFolderTitle}
-            onIonInput={(e) => setNewFolderTitle(e.detail.value!)}
+            onIonInput={(e) => setNewFolderTitle(e.detail.value!.trim())}
           />
           <IonIcon
             icon={add}
