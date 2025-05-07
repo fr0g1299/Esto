@@ -7,10 +7,6 @@ import "../styles/NotFound.css";
 const NotFound: React.FC = () => {
   const history = useHistory();
 
-  const goHome = () => {
-    history.push("/home");
-  };
-
   return (
     <IonPage>
       <IonContent fullscreen className="ion-padding ion-text-center">
@@ -22,7 +18,11 @@ const NotFound: React.FC = () => {
               Stránka, kterou hledáte, neexistuje nebo došlo k nějaké chybě.
             </p>
           </IonText>
-          <IonButton expand="block" onClick={goHome} className="ion-margin-top">
+          <IonButton
+            expand="block"
+            onClick={() => history.push("/home")}
+            className="ion-margin-top"
+          >
             <IonIcon icon={homeOutline} slot="start" className="icon-align" />
             Zpět na domovskou stránku
           </IonButton>

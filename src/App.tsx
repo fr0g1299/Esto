@@ -152,6 +152,7 @@ const App: React.FC = () => {
               <PrivateRoute exact path="/create" component={Create} />
               <Route exact path="/not-found" component={NotFound} />
               <Route exact path="/" render={() => <Redirect to="/home" />} />
+              <Route component={NotFound} />
             </IonRouterOutlet>
 
             <IonTabBar slot="bottom">
