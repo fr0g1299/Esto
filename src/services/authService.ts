@@ -6,7 +6,13 @@ import {
   updateProfile,
   // sendEmailVerification,
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  addDoc,
+  collection,
+} from "firebase/firestore";
 
 export interface UserProfile {
   firstName: string;
@@ -57,6 +63,22 @@ export const registerUser = async (
       viewedHistory: [],
       pushNotificationsEnabled: true,
       userRole: "User",
+    });
+
+    await addDoc(collection(db, `users/${user.uid}/favoriteFolders`), {
+      title: "Oblíbené",
+      propertyCount: 0,
+      createdAt: serverTimestamp(),
+    });
+
+    await addDoc(collection(db, `users/${user.uid}/notifications`), {
+      title: "Vítejte!",
+      message: "Váš účet byl úspěšně vytvořen.",
+      isRead: false,
+      timestamp: serverTimestamp(),
+      type: "system",
+      actionId: null,
+      actionUrl: null,
     });
 
     await signOut(auth);

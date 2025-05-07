@@ -8,12 +8,14 @@ import {
   IonItem,
   IonLabel,
   IonNote,
-  IonSpinner,
   IonItemSliding,
   IonItemOption,
   IonItemOptions,
   IonAvatar,
   IonIcon,
+  IonSkeletonText,
+  IonText,
+  IonButton,
 } from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
 import { db } from "../firebase";
@@ -31,7 +33,13 @@ import { useAuth } from "../hooks/useAuth";
 import { useHistory } from "react-router-dom";
 
 import "../styles/Notifications.css";
-import { checkmarkCircleOutline, pricetagOutline } from "ionicons/icons";
+import {
+  checkmarkCircleOutline,
+  homeOutline,
+  notificationsOutline,
+  pricetagOutline,
+} from "ionicons/icons";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 
 interface Notification {
   id: string;
@@ -46,6 +54,7 @@ interface Notification {
 
 const Notifications: React.FC = () => {
   const { user } = useAuth();
+  useTabBarScrollEffect();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const history = useHistory();
@@ -125,11 +134,56 @@ const Notifications: React.FC = () => {
           <IonTitle>Notifikace</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen>
+      <IonContent fullscreen scrollEvents>
         {loading ? (
-          <IonSpinner className="ion-margin" />
+          <IonItem lines="none" className="notification-item unread">
+            <IonAvatar slot="start" className="notification-avatar">
+              <IonSkeletonText
+                animated
+                style={{ width: "40px", height: "40px", borderRadius: "50%" }}
+              />
+            </IonAvatar>
+
+            <IonLabel className="notification-label">
+              <h2 className="notification-title">
+                <IonSkeletonText
+                  animated
+                  style={{ width: "60%", height: "16px" }}
+                />
+              </h2>
+              <p className="notification-message">
+                <IonSkeletonText
+                  animated
+                  style={{ width: "80%", height: "14px" }}
+                />
+              </p>
+              <IonNote className="notification-timestamp">
+                <IonSkeletonText
+                  animated
+                  style={{ width: "40%", height: "12px" }}
+                />
+              </IonNote>
+            </IonLabel>
+          </IonItem>
         ) : notifications.length === 0 ? (
-          <IonLabel className="ion-padding">Žádné notifikace</IonLabel>
+          <div className="empty-state">
+            <IonIcon icon={notificationsOutline} size="large" color="medium" />
+            <h2>Žádné notifikace</h2>
+            <IonText color="medium">
+              <p>
+                Nemáte žádné notifikace. Jakmile obdržíte novou notifikaci,
+                zobrazí se zde.
+              </p>
+            </IonText>
+            <IonButton
+              expand="block"
+              onClick={() => history.push("/home")}
+              className="ion-margin-top"
+            >
+              <IonIcon icon={homeOutline} slot="start" className="icon-align" />
+              Zpět na domovskou stránku
+            </IonButton>
+          </div>
         ) : (
           <IonList>
             {notifications.map((notif, index) => (

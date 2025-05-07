@@ -54,3 +54,20 @@
 .notification-timestamp.read {
   color: var(--ion-text-color-step-600);
 }
+
+.empty-state {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.icon-align {
+  margin-bottom: 1.5px;
+}

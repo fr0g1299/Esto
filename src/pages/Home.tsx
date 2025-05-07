@@ -16,6 +16,7 @@ import {
   IonButtons,
   IonCardSubtitle,
   IonSkeletonText,
+  useIonViewDidEnter,
 } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { notificationsOutline, add } from "ionicons/icons";
@@ -24,7 +25,14 @@ import { useHistory } from "react-router";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 
 import { db } from "../firebase";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  where,
+} from "firebase/firestore";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectCoverflow } from "swiper/modules";
@@ -103,6 +111,7 @@ const Home: React.FC = () => {
   const [newestProperties, setNewestProperties] = useState<NewestProperty[]>(
     []
   );
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -119,7 +128,24 @@ const Home: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+    getNotificationSize();
+  });
+
+  useIonViewDidEnter(() => {
+    getNotificationSize();
+  }, [user]);
+
+  const getNotificationSize = async () => {
+    if (!user) return;
+
+    const unreadQuery = query(
+      collection(db, "users", user.uid, "notifications"),
+      where("isRead", "==", false)
+    );
+
+    const snapshot = await getDocs(unreadQuery);
+    setUnreadCount(snapshot.size); // For future use, right now size color is transparent
+  };
 
   const signOut = async () => {
     try {
@@ -159,13 +185,11 @@ const Home: React.FC = () => {
                   onClick={() => history.push("/notifications")}
                 >
                   <div className="notification-icon-wrapper">
-                    <IonBadge
-                      color="danger"
-                      slot=""
-                      className="notification-badge"
-                    >
-                      0
-                    </IonBadge>
+                    {unreadCount > 0 && (
+                      <IonBadge slot="" className="notification-badge">
+                        0
+                      </IonBadge>
+                    )}
                     <IonIcon icon={notificationsOutline} size="large" />
                   </div>
                 </IonButton>
