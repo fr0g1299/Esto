@@ -5,7 +5,6 @@ import {
   setDoc,
   addDoc,
   serverTimestamp,
-  collectionGroup,
   getDoc,
   deleteDoc,
   updateDoc,
@@ -28,6 +27,12 @@ export interface FavoriteProperty {
   note?: string;
 }
 
+export interface SavedFilter {
+  id: string;
+  title: string;
+  criteria: string;
+}
+
 // Get all favorite folders for a user
 export const getFavoriteFolders = async (
   userId: string
@@ -40,6 +45,19 @@ export const getFavoriteFolders = async (
     title: doc.data().title,
     propertyCount: doc.data().propertyCount,
   }));
+};
+
+export const removeFavoriteFolder = async (
+  userId: string,
+  folderId: string
+) => {
+  const folderRef = await doc(db, "users", userId, "favoriteFolders", folderId);
+
+  const existing = await getDoc(folderRef);
+
+  if (existing.exists()) {
+    await deleteDoc(folderRef);
+  }
 };
 
 //Get all properties in a specific folder
@@ -64,16 +82,32 @@ export const getPropertiesInFolder = async (
 export const createFavoriteFolder = async (
   userId: string,
   title: string
-): Promise<string> => {
-  const docRef = await addDoc(
-    collection(db, "users", userId, "favoriteFolders"),
-    {
-      title,
-      createdAt: serverTimestamp(),
-      propertyCount: 0,
-    }
+): Promise<{ success: boolean; id?: string; error?: string }> => {
+  const foldersRef = collection(db, "users", userId, "favoriteFolders");
+  const snapshot = await getDocs(foldersRef);
+
+  // Check if a folder with the same title already exists
+  const folderExists = snapshot.docs.some(
+    (doc) => doc.data().title.toLowerCase() === title.toLowerCase()
   );
-  return docRef.id;
+
+  if (folderExists) {
+    return {
+      success: false,
+      error: "Složka s tímto názvem již existuje!",
+    };
+  }
+
+  const docRef = await addDoc(foldersRef, {
+    title,
+    createdAt: serverTimestamp(),
+    propertyCount: 0,
+  });
+
+  return {
+    success: true,
+    id: docRef.id,
+  };
 };
 
 // Add or update a property inside a folder
@@ -144,16 +178,26 @@ export const isPropertyFavorited = async (
   userId: string,
   propertyId: string
 ): Promise<boolean> => {
-  const q = collectionGroup(db, "properties");
-  const snapshot = await getDocs(q);
+  const foldersRef = collection(db, "users", userId, "favoriteFolders");
+  const foldersSnap = await getDocs(foldersRef);
 
-  return snapshot.docs.some((docSnap) => {
-    const path = docSnap.ref.path;
-    return (
-      path.includes(`users/${userId}/favoriteFolders/`) &&
-      docSnap.id === propertyId
+  for (const folderDoc of foldersSnap.docs) {
+    const propertyRef = doc(
+      db,
+      "users",
+      userId,
+      "favoriteFolders",
+      folderDoc.id,
+      "properties",
+      propertyId
     );
-  });
+    const propertySnap = await getDoc(propertyRef);
+    if (propertySnap.exists()) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 // Get all favorite folders containing a specific property
@@ -185,4 +229,40 @@ export const getFoldersContainingProperty = async (
   }
 
   return matchingFolderIds;
+};
+
+export const saveFavoriteFilter = async (
+  userId: string,
+  filterName: string,
+  filterCriteria: string
+) => {
+  await addDoc(collection(db, "users", userId, "savedFilters"), {
+    filterName,
+    filterCriteria,
+    createdAt: serverTimestamp(),
+  });
+};
+
+export const getSavedFilters = async (
+  userId: string
+): Promise<SavedFilter[]> => {
+  const snapshot = await getDocs(
+    collection(db, "users", userId, "savedFilters")
+  );
+  console.log("fetching filters");
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    title: doc.data().filterName,
+    criteria: doc.data().filterCriteria,
+  }));
+};
+
+export const removeSavedFilter = async (userId: string, filterId: string) => {
+  const filterRef = doc(db, "users", userId, "savedFilters", filterId);
+
+  const existing = await getDoc(filterRef);
+
+  if (existing.exists()) {
+    await deleteDoc(filterRef);
+  }
 };

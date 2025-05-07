@@ -5,7 +5,6 @@ import {
   IonTitle,
   IonContent,
   IonImg,
-  IonSpinner,
   IonText,
   IonCard,
   IonCardHeader,
@@ -15,6 +14,11 @@ import {
   IonInfiniteScrollContent,
   IonBackButton,
   IonButtons,
+  IonSkeletonText,
+  IonIcon,
+  IonButton,
+  useIonToast,
+  IonAlert,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useLocation, useHistory } from "react-router-dom";
@@ -38,6 +42,9 @@ import {
 } from "../services/geocodingService";
 
 import "../styles/SearchResults.css";
+import { homeOutline, searchOutline, starOutline } from "ionicons/icons";
+import { saveFavoriteFilter } from "../services/favoritesService";
+import { useAuth } from "../hooks/useAuth";
 
 interface Property {
   id: string;
@@ -62,6 +69,7 @@ const useQueryParams = () => {
 };
 
 const SearchResults: React.FC = () => {
+  const { user } = useAuth();
   useTabBarScrollEffect();
   const history = useHistory();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -70,6 +78,7 @@ const SearchResults: React.FC = () => {
     useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const queryParams = useQueryParams();
+  const [showToast] = useIonToast();
 
   const PAGE_SIZE = 5;
 
@@ -210,6 +219,17 @@ const SearchResults: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
 
+  const handleSaveToFavorites = (name: string) => {
+    if (!name || !name.trim()) {
+      showToast("Název filtru je povinný!", 2500);
+      return;
+    }
+
+    saveFavoriteFilter(user?.uid ?? "", name, queryParams.toString());
+
+    showToast("Filtry byly úspěšně uloženy!", 1500);
+  };
+
   return (
     <IonPage className="search-results-page">
       <IonHeader>
@@ -217,14 +237,60 @@ const SearchResults: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton></IonBackButton>
           </IonButtons>
+          <IonButtons slot="end">
+            <IonIcon icon={starOutline} slot="icon-only" id="favorite-alert" />
+          </IonButtons>
           <IonTitle>Výsledky hledání</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="ion-padding" scrollEvents>
-        {loading && !properties.length ? (
-          <IonSpinner name="crescent" />
+        {loading ? (
+          [...Array(5)].map((_, index) => (
+            <IonCard key={`skeleton-${index}`} className="property-card-list">
+              <IonSkeletonText
+                animated
+                style={{
+                  width: "100%",
+                  height: "200px",
+                  borderRadius: "8px",
+                  margin: "0px",
+                }}
+              />
+              <IonCardHeader>
+                <IonCardTitle>
+                  <IonSkeletonText
+                    animated
+                    style={{ width: "80%", height: "16px" }}
+                  />
+                </IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonSkeletonText
+                  animated
+                  style={{ width: "50%", height: "15px" }}
+                />
+              </IonCardContent>
+            </IonCard>
+          ))
         ) : properties.length === 0 ? (
-          <IonText>Nenalezeny žádné odpovídající nemovitosti.</IonText> //TODO: make this prettier
+          <div className="empty-state">
+            <IonIcon icon={searchOutline} size="large" color="medium" />
+            <h2>Žádné nemovitosti nenalezeny</h2>
+            <IonText color="medium">
+              <p>
+                Žádné nemovitosti neodpovídají vašemu vyhledávání. Zkuste
+                upravit filtry nebo hledat znovu.
+              </p>
+            </IonText>
+            <IonButton
+              expand="block"
+              onClick={() => history.push("/home")}
+              className="ion-margin-top"
+            >
+              <IonIcon icon={homeOutline} slot="start" className="icon-align" />
+              Zpět na domovskou stránku
+            </IonButton>
+          </div>
         ) : (
           <>
             {properties.map((property) => (
@@ -259,6 +325,29 @@ const SearchResults: React.FC = () => {
             </IonInfiniteScroll>
           </>
         )}
+        <IonAlert
+          trigger="favorite-alert"
+          header="Název oblíbeného filtru"
+          buttons={[
+            {
+              text: "Zrušit",
+              role: "cancel",
+            },
+            {
+              text: "Uložit",
+              role: "confirm",
+              handler: (e) => {
+                handleSaveToFavorites(e.filterName);
+              },
+            },
+          ]}
+          inputs={[
+            {
+              name: "filterName",
+              placeholder: "Název filtru",
+            },
+          ]}
+        ></IonAlert>
       </IonContent>
     </IonPage>
   );
