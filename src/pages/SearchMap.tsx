@@ -61,6 +61,7 @@ const SearchMap: React.FC = () => {
   } | null>(null);
   const lastFetchedBounds = useRef<{ sw: L.LatLng; ne: L.LatLng } | null>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const propertyCache = useRef<Map<string, Property>>(new Map());
 
   useEffect(() => {
     if (!mapBounds) return;
@@ -99,18 +100,25 @@ const SearchMap: React.FC = () => {
         );
 
         const snapshot = await getDocs(propertiesQuery);
-        const data: Property[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Property, "id">),
-        }));
 
-        const sameIds =
-          data.map((p) => p.id).join(",") ===
-          properties.map((p) => p.id).join(",");
-        if (sameIds) return;
-        if (!sameIds) {
-          console.log("Properties changed, updating state...");
-          setProperties(data);
+        const newProperties: Property[] = [];
+        const fetchedIds: Set<string> = new Set();
+
+        snapshot.forEach((doc) => {
+          fetchedIds.add(doc.id);
+          if (!propertyCache.current.has(doc.id)) {
+            const data = doc.data() as Omit<Property, "id">;
+            const property: Property = { id: doc.id, ...data };
+            propertyCache.current.set(doc.id, property);
+            newProperties.push(property);
+          }
+        });
+
+        if (newProperties.length > 0) {
+          console.log("New properties found:", newProperties.length);
+          setProperties((prev) => [...prev, ...newProperties]);
+        } else {
+          console.log("No new properties found.");
         }
       };
 
@@ -152,9 +160,8 @@ const SearchMap: React.FC = () => {
           scrollWheelZoom={true}
           className="map-container"
         >
-          {/* {properties.length === 0 && ( // TODO: markers blink on load */}
+          {/* TODO: markers blink on load */}
           <MapBoundsInitializer onBoundsChange={setMapBounds} />
-          {/* )} */}
           <ResizeMap />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
