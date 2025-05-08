@@ -14,6 +14,7 @@ import {
   IonText,
   IonList,
   IonItem,
+  IonSkeletonText,
 } from "@ionic/react";
 import { useParams } from "react-router";
 import { useEffect, useState, useRef } from "react";
@@ -287,7 +288,99 @@ const PropertyDetails: React.FC = () => {
   };
 
   if (!property || !details)
-    return <IonContent fullscreen>Loading...</IonContent>;
+    return (
+      <IonPage className="property-details-page">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/home"></IonBackButton>
+            </IonButtons>
+            <IonButtons slot="end"></IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen>
+          <div className="swiper-container">
+            <IonSkeletonText
+              animated
+              style={{
+                width: "100%",
+                height: "275px",
+                margin: "0px",
+              }}
+            />
+          </div>
+
+          <div className="property-body">
+            <h1>
+              <IonSkeletonText
+                animated
+                style={{ width: "70%", height: "25px", borderRadius: "3px" }}
+              />
+            </h1>
+            <IonSkeletonText
+              animated
+              style={{ width: "10%", height: "50px", borderRadius: "3px" }}
+            />
+
+            <h2>
+              <IonSkeletonText
+                animated
+                style={{ width: "40%", height: "18px", borderRadius: "3px" }}
+              />
+            </h2>
+            <p>
+              <IonSkeletonText
+                animated
+                style={{ width: "20%", height: "15px", borderRadius: "3px" }}
+              />
+              .
+              <IonSkeletonText
+                animated
+                style={{ width: "30%", height: "15px", borderRadius: "3px" }}
+              />
+              .
+              <IonSkeletonText
+                animated
+                style={{ width: "20%", height: "15px", borderRadius: "3px" }}
+              />
+            </p>
+            <p>
+              <IonSkeletonText
+                animated
+                style={{ width: "55%", height: "16px", borderRadius: "3px" }}
+              />
+            </p>
+            {[...Array(5)].map((_, index) => (
+              <p key={index}>
+                <IonSkeletonText
+                  animated
+                  style={{ width: "100%", height: "17px", borderRadius: "3px" }}
+                />
+              </p>
+            ))}
+
+            <IonGrid>
+              <IonRow>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <IonCol key={index}>
+                    <IonLabel>
+                      <IonSkeletonText
+                        animated
+                        style={{
+                          width: "30%",
+                          height: "15px",
+                          borderRadius: "3px",
+                        }}
+                      />
+                    </IonLabel>
+                  </IonCol>
+                ))}
+              </IonRow>
+            </IonGrid>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
 
   return (
     <IonPage className="property-details-page">

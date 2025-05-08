@@ -44,6 +44,7 @@
   .property-body {
     position: absolute;
     z-index: 3;
+    width: 100%;
     top: 235px !important;
     padding: 5px 15px 100px 15px;
     border-top-left-radius: 16px;

@@ -22,6 +22,8 @@ import {
   IonButtons,
   IonBackButton,
   useIonToast,
+  IonIcon,
+  IonText,
 } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { useParams, useHistory } from "react-router";
@@ -39,6 +41,8 @@ import ToggleChip from "../components/ui/ToggleChip";
 import { useMaskito } from "@maskito/react";
 
 import "../styles/CreateAndEdit.css";
+import { useAuth } from "../hooks/useAuth";
+import { homeOutline, lockClosedOutline } from "ionicons/icons";
 
 interface RouteParams {
   id: string;
@@ -53,6 +57,8 @@ interface UploadedImage {
 type ImageType = File | UploadedImage;
 
 const EditProperty: React.FC = () => {
+  const { user } = useAuth();
+  const [ownerId, setOwnerId] = useState("");
   const { id } = useParams<RouteParams>();
   const history = useHistory();
   useTabBarScrollEffect();
@@ -203,6 +209,7 @@ const EditProperty: React.FC = () => {
     const loadProperty = async () => {
       try {
         const data = await getPropertyById(id);
+        setOwnerId(data.ownerId);
         setTitle(data.title);
         setPrice(data.price.toString());
         setAddress(data.address);
@@ -312,6 +319,25 @@ const EditProperty: React.FC = () => {
       <IonContent fullscreen className="ion-padding">
         {loading ? (
           <IonLoading isOpen message="Načítání..." />
+        ) : user?.uid != ownerId ? (
+          <div className="empty-state">
+            <IonIcon icon={lockClosedOutline} size="large" color="medium" />
+            <h2>Přístup odepřen</h2>
+            <IonText color="medium">
+              <p>
+                Nemáte oprávnění upravovat tento inzerát, protože nejste jeho
+                vlastníkem.
+              </p>
+            </IonText>
+            <IonButton
+              expand="block"
+              onClick={() => history.push("/home")}
+              className="ion-margin-top"
+            >
+              <IonIcon icon={homeOutline} slot="start" className="icon-align" />
+              Zpět na domovskou stránku
+            </IonButton>
+          </div>
         ) : (
           <>
             <IonList lines="full" className="input-list">
@@ -393,6 +419,7 @@ const EditProperty: React.FC = () => {
               <IonCol className="ion-padding-end">
                 <IonDatetime
                   presentation="year"
+                  min="1800"
                   value={yearBuilt.toString()}
                   onIonChange={(e) => {
                     const date = new Date(
