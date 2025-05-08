@@ -1,73 +1,75 @@
-.notification-item {
-  border-radius: 10px;
-  margin: 2px 0;
-  transition: transform 0.2s ease-in-out, background-color 0.3s;
-}
+.notifications {
+  .notification-item {
+    border-radius: 10px;
+    margin: 2px 0;
+    transition: transform 0.2s ease-in-out, background-color 0.3s;
+  }
 
-.notification-item.unread {
-  margin: 10px 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
+  .notification-item.unread {
+    margin: 10px 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
 
-.notification-item.read {
-  box-shadow: none;
-}
+  .notification-item.read {
+    box-shadow: none;
+  }
 
-.notification-avatar {
-  position: relative;
-}
+  .notification-avatar {
+    position: relative;
+  }
 
-.notification-label {
-  padding: 2px 0;
-}
+  .notification-label {
+    padding: 2px 0;
+  }
 
-.notification-title {
-  font-size: 16px;
-}
+  .notification-title {
+    font-size: 16px;
+  }
 
-.notification-title.unread {
-  font-weight: bold;
-  color: var(--ion-text-color);
-}
+  .notification-title.unread {
+    font-weight: bold;
+    color: var(--ion-text-color);
+  }
 
-.notification-title.read {
-  font-weight: normal;
-  color: var(--ion-text-color-step-400);
-}
+  .notification-title.read {
+    font-weight: normal;
+    color: var(--ion-text-color-step-400);
+  }
 
-.notification-message {
-  font-size: 14px;
-  color: var(--ion-text-color-step-550) !important;
-  margin: 4px 0 !important;
-  line-height: 1.4;
-}
+  .notification-message {
+    font-size: 14px;
+    color: var(--ion-text-color-step-550) !important;
+    margin: 4px 0 !important;
+    line-height: 1.4;
+  }
 
-.notification-timestamp {
-  font-size: 12px;
-  margin-bottom: 0px !important;
-}
+  .notification-timestamp {
+    font-size: 12px;
+    margin-bottom: 0px !important;
+  }
 
-.notification-timestamp.unread {
-  color: var(--ion-text-color-step-500);
-}
+  .notification-timestamp.unread {
+    color: var(--ion-text-color-step-500);
+  }
 
-.notification-timestamp.read {
-  color: var(--ion-text-color-step-600);
-}
+  .notification-timestamp.read {
+    color: var(--ion-text-color-step-600);
+  }
 
-.empty-state {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  min-height: 100vh;
-  text-align: center;
-}
+  .empty-state {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    min-height: 100vh;
+    text-align: center;
+  }
 
-.icon-align {
-  margin-bottom: 1.5px;
+  .icon-align {
+    margin-bottom: 1.5px;
+  }
 }

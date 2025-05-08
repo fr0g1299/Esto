@@ -128,7 +128,7 @@ const Notifications: React.FC = () => {
   };
 
   return (
-    <IonPage>
+    <IonPage className="notifications">
       <IonHeader>
         <IonToolbar>
           <IonTitle>Notifikace</IonTitle>

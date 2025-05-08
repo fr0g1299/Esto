@@ -310,6 +310,7 @@ const Create: React.FC = () => {
           <IonCol className="ion-padding-end">
             <IonDatetime
               presentation="year"
+              min="1800"
               onIonChange={(e) => {
                 const date = new Date(
                   Array.isArray(e.detail.value)

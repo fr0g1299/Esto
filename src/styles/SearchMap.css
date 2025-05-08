@@ -5,10 +5,25 @@
     flex: 1;
   }
 
-  .property-image {
-    width: 100px;
-    height: auto;
-    margin-top: 5px;
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background-color: var(--ion-background-color);
+  }
+
+  .popup-title {
+    color: var(--ion-text-color);
+    font-size: 18px;
+  }
+
+  .popup-image {
+    width: 100%;
+    border-radius: 3px;
+    margin-top: 8px;
+  }
+
+  .popup-link {
+    text-decoration: none;
+    color: inherit;
   }
 
   .no-scrollbar {

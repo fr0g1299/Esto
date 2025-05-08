@@ -8,7 +8,7 @@ const NotFound: React.FC = () => {
   const history = useHistory();
 
   return (
-    <IonPage>
+    <IonPage className="not-found">
       <IonContent fullscreen className="ion-padding ion-text-center">
         <div className="center">
           <IonIcon icon={alertCircleOutline} size="large" color="danger" />

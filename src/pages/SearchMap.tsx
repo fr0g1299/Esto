@@ -1,5 +1,5 @@
 import React from "react";
-import { IonPage, IonContent, useIonViewWillEnter } from "@ionic/react";
+import { IonPage, IonContent } from "@ionic/react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -8,9 +8,9 @@ import { useEffect, useState, useRef } from "react";
 import { db } from "../firebase";
 import { collection, GeoPoint, getDocs } from "firebase/firestore";
 import { query, where } from "firebase/firestore";
-import { useStorage } from "../hooks/useStorage";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
+import { Link } from "react-router-dom";
 
 interface Property {
   id: string;
@@ -51,9 +51,7 @@ const MapBoundsInitializer: React.FC<{
 };
 
 const SearchMap: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
-  const { get, ready } = useStorage();
 
   const [mapBounds, setMapBounds] = useState<{
     sw: L.LatLng;
@@ -126,22 +124,6 @@ const SearchMap: React.FC = () => {
     }, 900);
   }, [mapBounds, properties]);
 
-  useIonViewWillEnter(() => {
-    const getDarkTheme = async () => {
-      console.log("useIonViewDidEnter...");
-      if (!ready) return;
-      const dark = await get("darkTheme");
-      console.log("Stored darkTheme value:", dark);
-      setIsDarkMode(dark);
-    };
-
-    getDarkTheme();
-  }, [ready, get]);
-
-  const darkTiles =
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-  const lightTiles = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-
   return (
     <IonPage className="search-map-page">
       <link
@@ -155,8 +137,8 @@ const SearchMap: React.FC = () => {
       ></script>
       <IonContent fullscreen className="no-scrollbar">
         <MapContainer
-          center={[49.8175, 15.473]}
-          zoom={7}
+          center={[50.0755, 14.4378]}
+          zoom={10}
           scrollWheelZoom={true}
           className="map-container"
         >
@@ -164,8 +146,8 @@ const SearchMap: React.FC = () => {
           <MapBoundsInitializer onBoundsChange={setMapBounds} />
           <ResizeMap />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-            url={isDarkMode ? darkTiles : lightTiles}
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy;'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             className="map-tiles"
           />
           <MarkerClusterGroup
@@ -187,14 +169,16 @@ const SearchMap: React.FC = () => {
                   })
                 }
               >
-                <Popup>
-                  <strong>{property.title}</strong>
-                  <br />
-                  <img
-                    src={property.imageUrl}
-                    alt={property.title}
-                    className="property-image"
-                  />
+                <Popup className="popup">
+                  <Link to={`/details/${property.id}`} className="popup-link">
+                    <strong className="popup-title">{property.title}</strong>
+                    <br />
+                    <img
+                      src={property.imageUrl}
+                      alt={property.title}
+                      className="popup-image"
+                    />
+                  </Link>
                 </Popup>
               </Marker>
             ))}
