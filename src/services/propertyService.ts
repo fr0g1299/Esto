@@ -282,6 +282,60 @@ export const removeProperty = async (propertyId: string) => {
     // Delete the main property document
     await deleteDoc(propertyRef);
 
+    // Remove property from all users' favorite folders and update propertyCount
+    const usersCollection = collection(db, "users");
+    const usersSnapshot = await getDocs(usersCollection);
+
+    await Promise.all(
+      usersSnapshot.docs.map(async (userDoc) => {
+        const userId = userDoc.id;
+
+        // Remove from notificationsPreferences
+        const notificationRef = doc(
+          db,
+          `users/${userId}/notificationsPreferences`,
+          propertyId
+        );
+        const notificationDoc = await getDoc(notificationRef);
+
+        if (notificationDoc.exists()) {
+          await deleteDoc(notificationRef);
+        }
+
+        const favoriteFoldersCollection = collection(
+          db,
+          `users/${userId}/favoriteFolders`
+        );
+        const favoriteFoldersSnapshot = await getDocs(
+          favoriteFoldersCollection
+        );
+
+        await Promise.all(
+          favoriteFoldersSnapshot.docs.map(async (folderDoc) => {
+            const folderId = folderDoc.id;
+            const folderData = folderDoc.data();
+            const propertyRefInFolder = doc(
+              db,
+              `users/${userId}/favoriteFolders/${folderId}/properties`,
+              propertyId
+            );
+
+            // Check if the property exists in this folder
+            const propertyDoc = await getDoc(propertyRefInFolder);
+            if (propertyDoc.exists()) {
+              // Delete the property from the folder
+              await deleteDoc(propertyRefInFolder);
+
+              // Update the propertyCount in the favorite folder
+              await updateDoc(folderDoc.ref, {
+                propertyCount: folderData.propertyCount - 1,
+              });
+            }
+          })
+        );
+      })
+    );
+
     console.log(`Property ${propertyId} successfully deleted.`);
   } catch (error) {
     console.error("Error deleting property:", error);

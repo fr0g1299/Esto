@@ -10,6 +10,8 @@ import {
   IonText,
   IonSpinner,
   IonThumbnail,
+  IonButtons,
+  IonBackButton,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
@@ -90,6 +92,9 @@ const Chats: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton></IonBackButton>
+          </IonButtons>
           <IonTitle>Moje zprávy</IonTitle>
         </IonToolbar>
       </IonHeader>

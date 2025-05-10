@@ -43,6 +43,7 @@ import { useMaskito } from "@maskito/react";
 import "../styles/CreateAndEdit.css";
 import { useAuth } from "../hooks/useAuth";
 import { homeOutline, lockClosedOutline } from "ionicons/icons";
+import { useStorage } from "../hooks/useStorage";
 
 interface RouteParams {
   id: string;
@@ -58,6 +59,7 @@ type ImageType = File | UploadedImage;
 
 const EditProperty: React.FC = () => {
   const { user } = useAuth();
+  const { get, set } = useStorage();
   const [ownerId, setOwnerId] = useState("");
   const { id } = useParams<RouteParams>();
   const history = useHistory();
@@ -294,6 +296,17 @@ const EditProperty: React.FC = () => {
 
   const handleRemove = async () => {
     await removeProperty(id);
+
+    const viewedHistory: { id: string }[] = (await get("viewedHistory")) || [];
+
+    const updatedHistory = viewedHistory.filter(
+      (p: { id: string }) => p.id !== id
+    );
+
+    console.log("Updated history after removal:", updatedHistory);
+
+    await set("viewedHistory", updatedHistory);
+
     showToast("Inzerát byl úspěšně smazán!", 3000);
     setTimeout(() => history.replace("/"), 1500);
   };

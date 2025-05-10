@@ -4,6 +4,10 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  getAuth,
+  updatePassword,
   // sendEmailVerification,
 } from "firebase/auth";
 import {
@@ -22,7 +26,6 @@ export interface UserProfile {
   username: string;
   createdAt?: Date;
   lastSeen?: Date;
-  viewedHistory: string[];
   pushNotificationsEnabled: boolean;
   userRole: "User" | "Admin";
 }
@@ -60,7 +63,6 @@ export const registerUser = async (
       email: user.email,
       createdAt: serverTimestamp(),
       lastSeen: serverTimestamp(),
-      viewedHistory: [],
       pushNotificationsEnabled: true,
       userRole: "User",
     });
@@ -119,6 +121,28 @@ export const logoutUser = async () => {
     console.log("User logged out");
   } catch (error) {
     console.error("Error logging out:", error);
+    throw error;
+  }
+};
+export const changeUserPassword = async (
+  oldPassword: string,
+  newPassword: string
+) => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user || !user.email) {
+    throw new Error("User not authenticated.");
+  }
+
+  try {
+    const credential = EmailAuthProvider.credential(user.email, oldPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    await updatePassword(user, newPassword);
+    console.log("Password updated successfully.");
+  } catch (error) {
+    console.error("Error changing password:", error);
     throw error;
   }
 };
