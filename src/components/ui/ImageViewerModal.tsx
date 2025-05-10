@@ -2,7 +2,8 @@ import { IonModal, IonButton, IonIcon, IonImg } from "@ionic/react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Zoom, Pagination } from "swiper/modules";
 import { closeOutline, imagesOutline } from "ionicons/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 
 import "swiper/css";
 import "swiper/css/zoom";
@@ -27,8 +28,13 @@ const ImageViewerModal: React.FC<Props> = ({ isOpen, onClose, images }) => {
     setTimeout(() => {
       setGalleryOpen(false);
       setClosing(false);
+      ScreenOrientation.lock({ orientation: "portrait" });
     }, 150);
   };
+
+  useEffect(() => {
+    ScreenOrientation.unlock();
+  });
 
   return (
     <IonModal

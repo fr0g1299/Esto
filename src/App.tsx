@@ -27,6 +27,7 @@ import RippleButton from "./components/ui/RippleButton";
 import { AuthProvider } from "./contexts/AuthProvider";
 import { Preferences } from "@capacitor/preferences";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -94,6 +95,7 @@ const App: React.FC = () => {
 
     applyInitialTheme();
     initPushPreference();
+    ScreenOrientation.lock({ orientation: "portrait" });
   }, [get, ready, user]);
 
   useEffect(() => {
