@@ -1,5 +1,5 @@
 import React from "react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, useIonViewDidLeave } from "@ionic/react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -10,7 +10,7 @@ import { collection, GeoPoint, getDocs } from "firebase/firestore";
 import { query, where } from "firebase/firestore";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 interface Property {
   id: string;
@@ -19,9 +19,17 @@ interface Property {
   imageUrl: string;
 }
 
+interface LocationState {
+  properties: Property[];
+}
+
 const ResizeMap = () => {
   const map = useMap();
-  map.invalidateSize();
+
+  useEffect(() => {
+    map.invalidateSize();
+  }, [map]);
+
   return null;
 };
 
@@ -52,7 +60,12 @@ const MapBoundsInitializer: React.FC<{
 
 const SearchMap: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
+  const location = useLocation<LocationState>();
+  const [propertiesFromState, setPropertiesFromState] = useState<Property[]>(
+    []
+  );
 
+  console.log(location);
   const [mapBounds, setMapBounds] = useState<{
     sw: L.LatLng;
     ne: L.LatLng;
@@ -61,7 +74,24 @@ const SearchMap: React.FC = () => {
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const propertyCache = useRef<Map<string, Property>>(new Map());
 
+  useIonViewDidLeave(() => {
+    if (propertiesFromState.length > 0) {
+      setPropertiesFromState([]);
+      setProperties([]);
+    }
+  });
   useEffect(() => {
+    setPropertiesFromState(location.state?.properties || []);
+  }, [location]);
+
+  useEffect(() => {
+    // If propertiesFromState is not empty, skip the debounce logic
+    if (propertiesFromState.length > 0) {
+      console.log("Using properties from state, skipping debounce logic.");
+      setProperties(propertiesFromState); // Set properties from state
+      return;
+    }
+
     if (!mapBounds) return;
 
     // Clear previous debounce
@@ -74,10 +104,10 @@ const SearchMap: React.FC = () => {
       // Check if bounds changed significantly
       const boundsChanged =
         !last ||
-        Math.abs(last.sw.lat - sw.lat) > 0.01 ||
-        Math.abs(last.sw.lng - sw.lng) > 0.01 ||
-        Math.abs(last.ne.lat - ne.lat) > 0.01 ||
-        Math.abs(last.ne.lng - ne.lng) > 0.01;
+        Math.abs(last.sw.lat - sw.lat) > 0.15 ||
+        Math.abs(last.sw.lng - sw.lng) > 0.15 ||
+        Math.abs(last.ne.lat - ne.lat) > 0.15 ||
+        Math.abs(last.ne.lng - ne.lng) > 0.15;
 
       if (!boundsChanged) {
         console.log("Bounds didn't change significantly — skip fetch.");
@@ -122,19 +152,15 @@ const SearchMap: React.FC = () => {
 
       fetchVisibleProperties();
     }, 900);
-  }, [mapBounds, properties]);
+  }, [mapBounds, properties, propertiesFromState]);
 
   return (
     <IonPage className="search-map-page">
       <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       />
-      <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      ></script>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <IonContent fullscreen className="no-scrollbar">
         <MapContainer
           center={[50.0755, 14.4378]}
@@ -143,7 +169,9 @@ const SearchMap: React.FC = () => {
           className="map-container"
         >
           {/* TODO: markers blink on load */}
-          <MapBoundsInitializer onBoundsChange={setMapBounds} />
+          {propertiesFromState.length === 0 && (
+            <MapBoundsInitializer onBoundsChange={setMapBounds} />
+          )}
           <ResizeMap />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy;'

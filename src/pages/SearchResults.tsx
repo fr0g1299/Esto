@@ -42,7 +42,12 @@ import {
 } from "../services/geocodingService";
 
 import "../styles/SearchResults.css";
-import { homeOutline, searchOutline, starOutline } from "ionicons/icons";
+import {
+  homeOutline,
+  mapOutline,
+  searchOutline,
+  starOutline,
+} from "ionicons/icons";
 import { saveFavoriteFilter } from "../services/favoritesService";
 import { useAuth } from "../hooks/useAuth";
 
@@ -236,6 +241,13 @@ const SearchResults: React.FC = () => {
         <IonToolbar>
           <IonButtons slot="start">
             <IonBackButton></IonBackButton>
+          </IonButtons>
+          <IonButtons slot="end">
+            <IonIcon
+              icon={mapOutline}
+              slot="icon-only"
+              onClick={() => history.push("/searchmap", { properties })}
+            />
           </IonButtons>
           <IonButtons slot="end">
             <IonIcon icon={starOutline} slot="icon-only" id="favorite-alert" />
