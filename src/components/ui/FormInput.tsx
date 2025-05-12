@@ -1,10 +1,11 @@
-import { IonInput } from "@ionic/react";
+import { IonInput, IonInputPasswordToggle } from "@ionic/react";
 import { useRef } from "react";
 
 interface Props<T extends string | number> {
   label: string;
   value?: T;
-  type?: "text" | "number";
+  fill?: "solid" | "outline";
+  type?: "text" | "number" | "password";
   onChange: (val: T) => void;
   disabled?: boolean;
   filter?: (value: string) => string; // For future use
@@ -15,6 +16,7 @@ function FormInput<T extends string | number>({
   label,
   value,
   onChange,
+  fill = "solid",
   type = "text",
   disabled,
   filter,
@@ -40,13 +42,16 @@ function FormInput<T extends string | number>({
     <IonInput
       value={value}
       type={type}
-      fill="solid"
+      fill={fill}
       label={label}
       labelPlacement="floating"
       disabled={disabled}
+      clearOnEdit={false}
       ref={ionInputEl}
       onIonInput={handleInput}
-    />
+    >
+      {type === "password" && <IonInputPasswordToggle slot="end" />}
+    </IonInput>
   );
 }
 
