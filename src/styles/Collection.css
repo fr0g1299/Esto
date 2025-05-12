@@ -32,12 +32,14 @@
   }
 
   ion-list {
-    padding: 0px;
+    padding: 0 5px;
+    background: transparent;
   }
 
   ion-content {
-    --padding-start: 5px;
-    --padding-end: 5px;
+    --padding-start: 10px;
+    --padding-end: 10px;
+    --padding-top: var(--safe-area-inset-top) !important;
   }
 
   .property-item {

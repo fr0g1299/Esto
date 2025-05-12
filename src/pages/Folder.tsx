@@ -1,11 +1,15 @@
 import {
+  IonAlert,
   IonBackButton,
-  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
+  IonImg,
   IonItem,
+  IonItemOption,
+  IonItemOptions,
+  IonItemSliding,
   IonLabel,
   IonList,
   IonNote,
@@ -17,7 +21,7 @@ import {
   IonToolbar,
   useIonToast,
 } from "@ionic/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import {
   getPropertiesInFolder,
@@ -25,7 +29,7 @@ import {
   removePropertyFromFolder,
 } from "../services/favoritesService";
 import { useParams, useLocation, useHistory } from "react-router";
-import { homeOutline, reorderThreeOutline, trash } from "ionicons/icons";
+import { homeOutline, trash } from "ionicons/icons";
 
 import "../styles/Folder.css";
 
@@ -53,8 +57,7 @@ const Folder: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const name = params.get("name") || "Oblíbené položky";
-
-  const [edit, setEdit] = useState(false);
+  const slidingRef = useRef<HTMLIonItemSlidingElement[]>([]);
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -108,17 +111,32 @@ const Folder: React.FC = () => {
           {properties.length !== 0 && (
             <>
               {name !== "Oblíbené" && (
-                <IonButtons slot="end">
-                  <IonIcon icon={trash} size="large" onClick={handleRemove} />
-                </IonButtons>
+                <>
+                  <IonButtons slot="end">
+                    <IonIcon
+                      icon={trash}
+                      size="large"
+                      id="delete-alert"
+                      slot="icon-only"
+                    />
+                  </IonButtons>
+                  <IonAlert
+                    trigger="delete-alert"
+                    header="Opravdu chcete smazat tuto složku?"
+                    buttons={[
+                      {
+                        text: "Ne",
+                        role: "cancel",
+                      },
+                      {
+                        text: "Ano",
+                        role: "confirm",
+                        handler: () => handleRemove(),
+                      },
+                    ]}
+                  />
+                </>
               )}
-              <IonButtons slot="end">
-                <IonIcon
-                  icon={reorderThreeOutline}
-                  size="large"
-                  onClick={() => setEdit(!edit)}
-                />
-              </IonButtons>
             </>
           )}
           <IonTitle>{name}</IonTitle>
@@ -128,14 +146,11 @@ const Folder: React.FC = () => {
         {loading ? (
           <IonList>
             {[...Array(5)].map((_, index) => (
-              <IonItem key={index}>
-                <IonThumbnail slot="start">
-                  <IonSkeletonText
-                    animated={true}
-                    style={{ width: "56px", height: "56x" }}
-                  />
+              <IonItem key={index} className="property-item" lines="none">
+                <IonThumbnail slot="start" className="property-thumbnail">
+                  <IonSkeletonText animated={true} />
                 </IonThumbnail>
-                <IonLabel>
+                <IonLabel className="property-label">
                   <h2>
                     <IonSkeletonText
                       animated={true}
@@ -165,33 +180,42 @@ const Folder: React.FC = () => {
           </div>
         ) : (
           <IonList>
-            {properties.map((property) => (
-              <IonItem
-                key={property.title}
-                routerLink={`/details/${property.id}`}
+            {properties.map((property, index) => (
+              <IonItemSliding
+                key={property.id}
+                ref={(el) => {
+                  if (el) slidingRef.current[index] = el;
+                }}
               >
-                <IonThumbnail slot="start">
-                  <img src={property.imageUrl} alt={property.title} />
-                </IonThumbnail>
-                <IonLabel>
-                  <h2>{property.title}</h2>
-                  <p>{property.price.toLocaleString("cs")} Kč</p>
-                  <p>{property.disposition}</p>
-                  {property.note && <IonNote>{property.note}</IonNote>}
-                </IonLabel>
-                {edit && (
-                  <IonButton
-                    className="delete-button"
-                    onClick={(e) => {
-                      e.preventDefault(); // Prevent navigation
-                      e.stopPropagation(); // Stop event propagation to IonItem
-                      handleRemoveFromFolder(property.id);
-                    }}
-                  >
-                    <IonIcon className="trash-icon" icon={trash} />
-                  </IonButton>
-                )}
-              </IonItem>
+                <IonItemOptions
+                  side="end"
+                  onIonSwipe={() => {
+                    slidingRef.current[index]?.close();
+                    handleRemoveFromFolder(property.id);
+                  }}
+                >
+                  <IonItemOption expandable color="danger">
+                    Odstranit
+                  </IonItemOption>
+                </IonItemOptions>
+
+                <IonItem
+                  key={property.title}
+                  routerLink={`/details/${property.id}`}
+                  className="property-item"
+                  lines="none"
+                >
+                  <IonThumbnail slot="start" className="property-thumbnail">
+                    <IonImg src={property.imageUrl} alt={property.title} />
+                  </IonThumbnail>
+                  <IonLabel className="property-label">
+                    <h2>{property.title}</h2>
+                    <p>{property.price.toLocaleString("cs")} Kč</p>
+                    <p>{property.disposition}</p>
+                    {property.note && <IonNote>{property.note}</IonNote>}
+                  </IonLabel>
+                </IonItem>
+              </IonItemSliding>
             ))}
           </IonList>
         )}

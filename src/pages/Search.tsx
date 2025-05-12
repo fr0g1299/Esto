@@ -10,6 +10,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonText,
+  IonItemDivider,
 } from "@ionic/react";
 import React, { useState, useRef } from "react";
 import { useHistory } from "react-router-dom";
@@ -95,7 +96,7 @@ const Search: React.FC = () => {
     },
     { label: "Sklep", checked: basement, setter: setBasement },
     { label: "Zařízený", checked: furnished, setter: setFurnished },
-    { label: "Balkon", checked: balcony, setter: setBalcony },
+    { label: "Balkón", checked: balcony, setter: setBalcony },
     { label: "Bazén", checked: pool, setter: setPool },
     { label: "Zahrada", checked: garden, setter: setGarden },
     { label: "Solární panely", checked: solarPanels, setter: setSolarPanels },
@@ -170,108 +171,128 @@ const Search: React.FC = () => {
   return (
     <IonPage className="search-page">
       <IonContent fullscreen className="ion-padding">
-        <IonList lines="full" className="input-list">
-          <FormInput label="Adresa" value={address} onChange={setAddress} />
-          <FormInput
-            label="Rádius (km)"
-            value={radiusString}
-            onChange={setRadius}
-            disabled={address.trim() === ""}
-            type="number"
-            filter={(v) => v.replace(/[^0-9]/g, "")}
-          />
-
-          <FormInput
-            label="Město"
-            value={city}
-            onChange={setCity}
-            filter={(v) => v.replace(/[^a-zA-Z ]/g, "")}
-          />
-          <IonSelect
-            interface="popover"
-            fill="outline"
-            label="Typ nemovitosti"
-            labelPlacement="floating"
-            onIonChange={(e) => setType(e.detail.value)}
-          >
-            {typeOptions.map((type) => (
-              <IonSelectOption key={type} value={type}>
-                {type}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
+        <IonItemDivider>
+          <IonLabel>Základní informace</IonLabel>
+        </IonItemDivider>
+        <IonList lines="full" className="input-list ion-margin-bottom">
+          <IonItem lines="none">
+            <FormInput label="Adresa" value={address} onChange={setAddress} />
+          </IonItem>
+          <IonItem lines="none">
+            <FormInput
+              label="Rádius (km)"
+              value={radiusString}
+              onChange={setRadius}
+              disabled={address.trim() === ""}
+              type="number"
+              filter={(v) => v.replace(/[^0-9]/g, "")}
+            />
+          </IonItem>
+          <IonItem lines="none">
+            <FormInput
+              label="Město"
+              value={city}
+              onChange={setCity}
+              filter={(v) => v.replace(/[^a-zA-Z ]/g, "")}
+            />
+          </IonItem>
         </IonList>
 
-        <IonItem lines="none">
-          <IonLabel>
-            Cena: (<strong>{minPrice?.toLocaleString() || "0"}</strong>) - (
-            <strong>{maxPrice?.toLocaleString() || "0"}</strong>)
-          </IonLabel>
-        </IonItem>
+        <IonItemDivider>
+          <IonLabel>Typ nemovitosti</IonLabel>
+        </IonItemDivider>
+        <IonSelect
+          interface="popover"
+          fill="outline"
+          label="Vyberte..."
+          labelPlacement="floating"
+          className="ion-padding-start ion-padding-end"
+          onIonChange={(e) => setType(e.detail.value)}
+        >
+          {typeOptions.map((type) => (
+            <IonSelectOption key={type} value={type}>
+              {type}
+            </IonSelectOption>
+          ))}
+        </IonSelect>
 
-        <IonItem lines="none">
-          <IonRange
-            dualKnobs
-            min={0}
-            max={99999999}
-            step={1000}
-            value={{ lower: minPrice, upper: maxPrice }}
-            onIonInput={(e) => {
-              const rangeValue = e.detail.value as {
-                lower: number;
-                upper: number;
-              };
-              setMinPrice(rangeValue.lower);
-              setMaxPrice(rangeValue.upper);
-            }}
-          ></IonRange>
-        </IonItem>
+        <IonItemDivider>
+          <IonLabel>Cena</IonLabel>
+        </IonItemDivider>
+        <IonList lines="full" className="input-list">
+          <IonItem lines="none">
+            <IonRange
+              dualKnobs
+              min={0}
+              max={99999999}
+              step={1000}
+              value={{ lower: minPrice, upper: maxPrice }}
+              onIonInput={(e) => {
+                const rangeValue = e.detail.value as {
+                  lower: number;
+                  upper: number;
+                };
+                setMinPrice(rangeValue.lower);
+                setMaxPrice(rangeValue.upper);
+              }}
+            ></IonRange>
+          </IonItem>
 
-        <IonItem>
-          <IonLabel className="ion-margin-end">Od:</IonLabel>
-          <IonInput
-            type="text"
-            ref={ionInputElMinNumber}
-            value={minPrice?.toLocaleString()}
-            placeholder="0"
-            onIonInput={(e) => onInputPrice(e, true)}
-          />
-          <IonLabel className="ion-margin-end">Do:</IonLabel>
-          <IonInput
-            type="text"
-            ref={ionInputElMaxNumber}
-            value={maxPrice?.toLocaleString()}
-            placeholder="0"
-            onIonInput={(e) => onInputPrice(e, false)}
-          />
-        </IonItem>
+          <IonItem lines="none">
+            <IonLabel className="ion-margin-end">Od:</IonLabel>
+            <IonInput
+              type="text"
+              ref={ionInputElMinNumber}
+              value={minPrice?.toLocaleString("cs")}
+              placeholder="0"
+              onIonInput={(e) => onInputPrice(e, true)}
+            />
+            <IonLabel className="ion-margin-end">Do:</IonLabel>
+            <IonInput
+              type="text"
+              ref={ionInputElMaxNumber}
+              value={maxPrice?.toLocaleString("cs")}
+              placeholder="0"
+              onIonInput={(e) => onInputPrice(e, false)}
+            />
+          </IonItem>
+        </IonList>
 
+        <IonItemDivider>
+          <IonLabel>Vybavení</IonLabel>
+        </IonItemDivider>
         {/* Chips */}
-        {chipOptions.map(({ label, checked, setter }) => (
-          <ToggleChip
-            key={label}
-            label={label}
-            checked={checked}
-            onToggle={() => setter(!checked)}
-          />
-        ))}
+        <div className="chip-container">
+          {chipOptions.map(({ label, checked, setter }) => (
+            <ToggleChip
+              key={label}
+              label={label}
+              checked={checked}
+              onToggle={() => setter(!checked)}
+            />
+          ))}
+        </div>
+
+        <IonItemDivider className="ion-margin-top">
+          <IonLabel>Dispozice</IonLabel>
+        </IonItemDivider>
 
         {/* Disposition selector */}
-        <IonList lines="full" className="input-list">
-          <IonSelect
-            value={disposition}
-            onIonChange={(e) => setDisposition(e.detail.value)}
-            interface="action-sheet"
-            fill="outline"
-            label="Dispozice"
-          >
-            {dispositionOptions.map((disp) => (
-              <IonSelectOption key={disp} value={disp}>
-                {disp}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
-        </IonList>
+        <IonSelect
+          value={disposition}
+          onIonChange={(e) => setDisposition(e.detail.value)}
+          interface="action-sheet"
+          className="ion-padding-start ion-padding-end ion-margin-bottom"
+          fill="outline"
+          label="Vyberte..."
+          cancelText="Zrušit"
+        >
+          {dispositionOptions.map((disp) => (
+            <IonSelectOption key={disp} value={disp}>
+              {disp}
+            </IonSelectOption>
+          ))}
+        </IonSelect>
 
         {!radiusString && (
           <IonText color="danger" className="ion-padding-start">

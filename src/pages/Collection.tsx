@@ -1,15 +1,11 @@
 import {
   IonContent,
-  IonHeader,
   IonPage,
-  IonTitle,
-  IonToolbar,
   IonList,
   IonItem,
   IonLabel,
   IonThumbnail,
   IonImg,
-  useIonViewDidEnter,
   IonAccordion,
   IonAccordionGroup,
   IonText,
@@ -19,6 +15,7 @@ import {
   IonItemOptions,
   IonItemOption,
   IonAlert,
+  useIonViewDidLeave,
 } from "@ionic/react";
 import React, { useRef, useState } from "react";
 import { useStorage } from "../hooks/useStorage";
@@ -121,7 +118,12 @@ const Collection: React.FC = () => {
   const [favoriteFolders, setFavoriteFolders] = useState<FolderProps[]>([]);
   const [accordionKey, setAccordionKey] = useState(0);
   const [savedFilters, setSavedFilters] = useState<FilterProps[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingLevels, setLoadingLevels] = useState({
+    viewedHistory: true,
+    favoriteFolders: true,
+    savedFilters: true,
+  });
+
   const [showAlert, setShowAlert] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState("");
 
@@ -130,8 +132,8 @@ const Collection: React.FC = () => {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const slidingRef = useRef<HTMLIonItemSlidingElement | null>(null);
 
-  useIonViewDidEnter(() => {
-    setAccordionKey((prev) => prev + 1); // TODO: too aggressive
+  useIonViewDidLeave(() => {
+    setAccordionKey((prev) => prev + 1);
   }, []);
 
   const handleViewedHistory = async () => {
@@ -140,16 +142,15 @@ const Collection: React.FC = () => {
     setHistoryExpanded(newValue);
 
     if (!historyExpanded) {
-      setLoading(true);
+      setLoadingLevels((prev) => ({ ...prev, viewedHistory: true }));
 
       try {
         const history: HistoryProps[] = (await get("viewedHistory")) || [];
         setViewedHistory(history);
       } catch (error) {
         console.error("Fetch error:", error);
-        setLoading(false);
       } finally {
-        setLoading(false);
+        setLoadingLevels((prev) => ({ ...prev, viewedHistory: false }));
       }
     }
   };
@@ -160,15 +161,14 @@ const Collection: React.FC = () => {
     setFolderExpanded(newValue);
 
     if (!folderExpanded) {
-      setLoading(true);
+      setLoadingLevels((prev) => ({ ...prev, favoriteFolders: true }));
 
       try {
         setFavoriteFolders(await getFavoriteFolders(user.uid));
       } catch (error) {
         console.error("Fetch error:", error);
-        setLoading(false);
       } finally {
-        setLoading(false);
+        setLoadingLevels((prev) => ({ ...prev, favoriteFolders: false }));
       }
     }
   };
@@ -180,16 +180,15 @@ const Collection: React.FC = () => {
     setFiltersExpanded(newValue);
 
     if (!filtersExpanded) {
-      setLoading(true);
+      setLoadingLevels((prev) => ({ ...prev, savedFilters: true }));
 
       try {
         const filters = await getSavedFilters(user?.uid);
         setSavedFilters(filters);
       } catch (error) {
         console.error("Fetch error:", error);
-        setLoading(false);
       } finally {
-        setLoading(false);
+        setLoadingLevels((prev) => ({ ...prev, savedFilters: false }));
       }
     }
   };
@@ -209,11 +208,6 @@ const Collection: React.FC = () => {
 
   return (
     <IonPage className="collections">
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Kolekce</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen className="ion-padding">
         <IonAccordionGroup key={accordionKey} multiple expand="inset">
           <IonAccordion value="viewedHistory" onClick={handleViewedHistory}>
@@ -221,7 +215,7 @@ const Collection: React.FC = () => {
               <IonLabel>Historie zobrazení</IonLabel>
             </IonItem>
             <IonList slot="content">
-              {loading ? (
+              {loadingLevels.viewedHistory ? (
                 [...Array(3)].map((_, index) => (
                   <IonItem key={index} className="property-item" lines="none">
                     <IonThumbnail slot="start" className="property-thumbnail">
@@ -247,8 +241,10 @@ const Collection: React.FC = () => {
                   </IonItem>
                 ))
               ) : !viewedHistory || viewedHistory.length === 0 ? (
-                <IonItem lines="none">
-                  <IonLabel>Nemáte žádnou historii zobrazení.</IonLabel>
+                <IonItem lines="none" className="property-item">
+                  <IonLabel className="property-label">
+                    Nemáte žádnou historii zobrazení.
+                  </IonLabel>
                 </IonItem>
               ) : (
                 <>
@@ -282,7 +278,7 @@ const Collection: React.FC = () => {
               <IonLabel>Složky oblíbených inzerátů</IonLabel>
             </IonItem>
             <IonList slot="content">
-              {loading ? (
+              {loadingLevels.favoriteFolders ? (
                 [...Array(3)].map((_, index) => (
                   <IonItem key={index} className="folder-item" lines="none">
                     <IonLabel className="property-label">
@@ -326,7 +322,7 @@ const Collection: React.FC = () => {
               <IonLabel>Uložené filtry</IonLabel>
             </IonItem>
             <IonList slot="content">
-              {loading ? (
+              {loadingLevels.savedFilters ? (
                 [...Array(3)].map((_, index) => (
                   <div key={index}>
                     <IonItem className="filter-item" lines="none">
@@ -342,8 +338,10 @@ const Collection: React.FC = () => {
                   </div>
                 ))
               ) : !savedFilters || savedFilters.length === 0 ? (
-                <IonItem lines="none">
-                  <IonLabel>Nemáte žádné uložené filtry.</IonLabel>
+                <IonItem lines="none" className="property-item">
+                  <IonLabel className="property-label">
+                    Nemáte žádné uložené filtry.
+                  </IonLabel>
                 </IonItem>
               ) : (
                 <>

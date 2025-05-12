@@ -11,10 +11,25 @@
 }
 
 .search-page {
+  ion-content {
+    --padding-top: var(--safe-area-inset-top) !important;
+  }
+
+  .chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   .input-list {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    border-radius: 15px;
+  }
+
+  ion-item-divider {
+    border-bottom: 0px;
   }
 
   .accordion-group {
