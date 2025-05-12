@@ -1,0 +1,116 @@
+.settings {
+  * {
+    transition: --background 0.3s ease-in-out,
+      --ion-background-color 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    --transition: --background 0.3s ease-in-out,
+      --ion-background-color 0.3s ease-in-out, background-color 0.3s ease-in-out;
+  }
+
+  ion-content {
+    --background: transparent !important;
+    background-color: var(--ion-background-color);
+    --padding-top: var(--safe-area-inset-top) !important;
+  }
+
+  ion-toggle {
+    padding: 12px;
+
+    --handle-width: 25px;
+    --handle-height: 25px;
+    --handle-max-height: auto;
+
+    contain: none;
+  }
+
+  ion-toggle::part(track),
+  ion-toggle.toggle-checked::part(track) {
+    height: 10px;
+    width: 55px;
+
+    background: #ccc;
+    overflow: visible;
+  }
+
+  ion-toggle::part(handle) {
+    background: #941e04;
+
+    border-radius: 4px;
+    box-shadow: none;
+  }
+
+  ion-toggle.toggle-checked::part(handle) {
+    background: var(--ion-color-primary);
+  }
+
+  .version-note {
+    display: flex;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    margin-top: 25px;
+  }
+
+  .email-note {
+    font-size: 14px;
+    color: #941e04;
+  }
+
+  ion-item-divider {
+    border-bottom: 0px;
+  }
+  .input-list {
+    border-radius: 15px;
+  }
+
+  ion-item::part(native) {
+    padding-right: 16px;
+    --inner-padding-end: 0px;
+  }
+  .item-divider-space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logout {
+    color: var(--ion-color-primary);
+    font-weight: 500;
+    margin-left: auto;
+    text-decoration: none;
+  }
+}
+
+.account-delete {
+  padding: 1rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  ion-text {
+    color: #ff4d4f;
+    font-weight: 500;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  ion-note {
+    font-size: 0.875rem;
+    color: #999;
+    justify-content: center;
+    display: flex;
+    white-space: nowrap;
+  }
+}
+
+.settings-modal {
+  ion-content {
+    --padding-top: var(--safe-area-inset-top) !important;
+  }
+  ion-item-divider {
+    border-bottom: 0px;
+  }
+  .input-list {
+    border-radius: 15px;
+  }
+}
