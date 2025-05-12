@@ -5,6 +5,8 @@ import * as functions from "firebase-functions";
 admin.initializeApp();
 const db = admin.firestore();
 
+export { removeProperty } from "./property/removeProperty";
+
 /**
  * Updates the trending properties collection in the database.
  * This function is triggered every day at 23:50.

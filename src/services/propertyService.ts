@@ -18,7 +18,6 @@ import {
   uploadBytes,
   getDownloadURL,
   deleteObject,
-  listAll,
 } from "firebase/storage";
 import { sendPriceDropNotification } from "./notificationsService";
 
@@ -62,7 +61,6 @@ interface PropertyDetails {
   description: string;
   kitchenEquipment: string[];
   heatingType: string;
-  videoUrl: string;
 }
 
 interface UploadedImage {
@@ -202,7 +200,7 @@ export const updateProperty = async (
 
   // Delete removed images from Firestore and Storage
   for (const image of removedImages) {
-    const docRef = doc(imageCollectionRef, image.sortOrder?.toString()); // Or use imageId if you stored it
+    const docRef = doc(imageCollectionRef, image.sortOrder?.toString());
     await deleteDoc(docRef);
 
     const storagePath = extractStoragePathFromUrl(image.imageUrl);
@@ -256,89 +254,4 @@ export const updateProperty = async (
   }
 
   return propertyId;
-};
-
-export const removeProperty = async (propertyId: string) => {
-  try {
-    const propertyRef = doc(db, "properties", propertyId);
-
-    // Delete property details
-    const detailsRef = doc(db, "properties", propertyId, "details", "data");
-    await deleteDoc(detailsRef);
-
-    // Delete image documents from Firestore
-    const imagesCollection = collection(db, "properties", propertyId, "images");
-    const imagesSnapshot = await getDocs(imagesCollection);
-    await Promise.all(imagesSnapshot.docs.map((doc) => deleteDoc(doc.ref)));
-
-    // Delete image files from Firebase Storage
-    const storageFolderRef = ref(storage, `properties/${propertyId}/images`);
-    const storedFiles = await listAll(storageFolderRef);
-
-    await Promise.all(
-      storedFiles.items.map((itemRef) => deleteObject(itemRef))
-    );
-
-    // Delete the main property document
-    await deleteDoc(propertyRef);
-
-    // Remove property from all users' favorite folders and update propertyCount
-    const usersCollection = collection(db, "users");
-    const usersSnapshot = await getDocs(usersCollection);
-
-    await Promise.all(
-      usersSnapshot.docs.map(async (userDoc) => {
-        const userId = userDoc.id;
-
-        // Remove from notificationsPreferences
-        const notificationRef = doc(
-          db,
-          `users/${userId}/notificationsPreferences`,
-          propertyId
-        );
-        const notificationDoc = await getDoc(notificationRef);
-
-        if (notificationDoc.exists()) {
-          await deleteDoc(notificationRef);
-        }
-
-        const favoriteFoldersCollection = collection(
-          db,
-          `users/${userId}/favoriteFolders`
-        );
-        const favoriteFoldersSnapshot = await getDocs(
-          favoriteFoldersCollection
-        );
-
-        await Promise.all(
-          favoriteFoldersSnapshot.docs.map(async (folderDoc) => {
-            const folderId = folderDoc.id;
-            const folderData = folderDoc.data();
-            const propertyRefInFolder = doc(
-              db,
-              `users/${userId}/favoriteFolders/${folderId}/properties`,
-              propertyId
-            );
-
-            // Check if the property exists in this folder
-            const propertyDoc = await getDoc(propertyRefInFolder);
-            if (propertyDoc.exists()) {
-              // Delete the property from the folder
-              await deleteDoc(propertyRefInFolder);
-
-              // Update the propertyCount in the favorite folder
-              await updateDoc(folderDoc.ref, {
-                propertyCount: folderData.propertyCount - 1,
-              });
-            }
-          })
-        );
-      })
-    );
-
-    console.log(`Property ${propertyId} successfully deleted.`);
-  } catch (error) {
-    console.error("Error deleting property:", error);
-    throw error;
-  }
 };
