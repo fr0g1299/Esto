@@ -5,6 +5,9 @@
     flex: 1;
   }
 
+  .leaflet-top.leaflet-left {
+    padding-top: var(--safe-area-inset-top) !important;
+  }
   .leaflet-popup-content-wrapper,
   .leaflet-popup-tip {
     background-color: var(--ion-background-color);

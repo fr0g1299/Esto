@@ -27,7 +27,9 @@ const ResizeMap = () => {
   const map = useMap();
 
   useEffect(() => {
-    map.invalidateSize();
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
   }, [map]);
 
   return null;
@@ -80,6 +82,7 @@ const SearchMap: React.FC = () => {
       setProperties([]);
     }
   });
+
   useEffect(() => {
     setPropertiesFromState(location.state?.properties || []);
   }, [location]);
@@ -156,11 +159,6 @@ const SearchMap: React.FC = () => {
 
   return (
     <IonPage className="search-map-page">
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      />
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <IonContent fullscreen className="no-scrollbar">
         <MapContainer
           center={[50.0755, 14.4378]}
