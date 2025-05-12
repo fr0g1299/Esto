@@ -6,11 +6,51 @@ import {
   IonHeader,
   IonImg,
   IonModal,
+  IonNote,
   IonRow,
   IonToolbar,
+  useIonToast,
 } from "@ionic/react";
 import { useRef } from "react";
+import { DragEndEvent } from "@dnd-kit/core";
 import "./ImageUploader.css";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+const SortableImage = ({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    touchAction: "none",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+};
 
 interface UploadedImage {
   imageUrl: string;
@@ -35,13 +75,33 @@ const ImageUploader: React.FC<Props> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const modal = useRef<HTMLIonModalElement>(null);
+  const [showToast] = useIonToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 50,
+        tolerance: 5,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      const oldIndex = images.findIndex((img, i) => i.toString() === active.id);
+      const newIndex = images.findIndex((img, i) => i.toString() === over?.id);
+      const sorted = arrayMove(images, oldIndex, newIndex);
+      setImages(sorted);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const total = images.length + files.length;
 
     if (total > max) {
-      alert(`You can upload max ${max} images.`); // TODO: Alert
+      showToast(`You can upload max ${max} images.`, 2500);
       return;
     }
 
@@ -96,7 +156,11 @@ const ImageUploader: React.FC<Props> = ({
         </IonCol>
       </IonRow>
 
-      <IonModal ref={modal} trigger="open-modal">
+      <IonModal
+        ref={modal}
+        trigger="open-modal"
+        className="image-uploader-modal"
+      >
         <IonHeader>
           <IonToolbar>
             <IonButtons slot="start">
@@ -107,27 +171,43 @@ const ImageUploader: React.FC<Props> = ({
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen className="ion-padding">
-          <div className="image-preview-container">
-            {images.map((img, idx) => (
-              <div key={idx} className="image-container" id={`img-${idx}`}>
-                <IonImg
-                  src={
-                    img instanceof File
-                      ? URL.createObjectURL(img) // For new uploads
-                      : img.imageUrl // For already uploaded images
-                  }
-                  alt={img instanceof File ? img.name : img.altText}
-                  className="image-preview"
-                />
-                <button
-                  onClick={() => removeImage(idx)}
-                  className="remove-button"
-                >
-                  ×
-                </button>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={images.map((_, index) => index.toString())}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="image-preview-container">
+                {images.map((img, idx) => (
+                  <SortableImage key={idx} id={idx.toString()}>
+                    <div className="image-container" id={`img-${idx}`}>
+                      <IonImg
+                        src={
+                          img instanceof File
+                            ? URL.createObjectURL(img)
+                            : img.imageUrl
+                        }
+                        alt={img instanceof File ? img.name : img.altText}
+                        className="image-preview"
+                      />
+                      <button
+                        onClick={() => removeImage(idx)}
+                        className="remove-button"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </SortableImage>
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
+          <IonNote className="drag-note">
+            Můžete přetahovat obrázky pro změnu jejich pořadí
+          </IonNote>
         </IonContent>
       </IonModal>
     </div>
