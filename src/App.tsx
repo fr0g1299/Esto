@@ -70,12 +70,17 @@ import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import { useAuth } from "./hooks/useAuth";
 import { setNotificationPreference } from "./services/notificationsService";
+import { SafeArea } from "capacitor-plugin-safe-area";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 setupIonicReact();
 
 const App: React.FC = () => {
   const { get, ready } = useStorage();
   const { user } = useAuth();
+  useEffect(() => {
+    ScreenOrientation.lock({ orientation: "portrait" });
+  }, []);
 
   useEffect(() => {
     const applyInitialTheme = async () => {
@@ -83,6 +88,21 @@ const App: React.FC = () => {
       const storedTheme = await get("darkTheme");
       const darkTheme = storedTheme !== null ? storedTheme : false;
       document.documentElement.classList.toggle("ion-palette-dark", darkTheme);
+    };
+
+    const setSafeArea = async () => {
+      const safeArea = await SafeArea.getSafeAreaInsets();
+      const top = safeArea.insets?.top || 0;
+      const bottom = safeArea.insets?.bottom || 0;
+      console.log("Safe area insets:", safeArea);
+      document.documentElement.style.setProperty(
+        "--safe-area-inset-top",
+        `${top}px`
+      );
+      document.documentElement.style.setProperty(
+        "--safe-area-inset-bottom",
+        `${bottom}px`
+      );
     };
 
     const initPushPreference = async () => {
@@ -95,8 +115,30 @@ const App: React.FC = () => {
 
     applyInitialTheme();
     initPushPreference();
-    ScreenOrientation.lock({ orientation: "portrait" });
+    setSafeArea();
   }, [get, ready, user]);
+
+  useEffect(() => {
+    const applyStatusBarStyle = async () => {
+      try {
+        // Transparent background + overlay
+        await StatusBar.setBackgroundColor({ color: "transparent" });
+        await StatusBar.setOverlaysWebView({ overlay: true });
+
+        // Initial style based on theme
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        await StatusBar.setStyle({
+          style: prefersDark ? Style.Dark : Style.Light,
+        });
+      } catch (err) {
+        console.warn("StatusBar setup failed:", err);
+      }
+    };
+
+    applyStatusBarStyle();
+  }, []);
 
   useEffect(() => {
     PushNotifications.addListener("registrationError", (err) => {
@@ -129,7 +171,7 @@ const App: React.FC = () => {
               <Route exact path="/search" component={Search} />
               <Route exact path="/collections" component={Collection} />
               <Route exact path="/settings" component={Settings} />
-              <Route exact path="/details/:id" component={PropertyDetails} />
+              <Route exact path="/details/:propertyId" component={PropertyDetails} />
               <Route exact path="/results" component={SearchResults} />
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
@@ -150,7 +192,7 @@ const App: React.FC = () => {
                 path="/notifications"
                 component={Notifications}
               />
-              <Route exact path="/edit/:id" component={EditProperty} />
+              <Route exact path="/edit/:propertyId" component={EditProperty} />
               <PrivateRoute exact path="/create" component={Create} />
               <Route exact path="/not-found" component={NotFound} />
               <Route exact path="/" render={() => <Redirect to="/home" />} />

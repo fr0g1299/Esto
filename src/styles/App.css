@@ -1,5 +1,5 @@
 ion-tab-bar {
-  bottom: 20px;
+  bottom: calc(var(--safe-area-inset-top) + 20px);
   position: relative;
   border: 0px;
   border-radius: 24px;
@@ -87,7 +87,7 @@ ion-tab-bar {
   height: 56px;
   background-color: var(--ion-toolbar-background, #fff);
   transition: background-color 0.3s ease-in-out, color 0.1s ease-in-out;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
   display: flex;
   font-size: 26px;
   align-items: center;
