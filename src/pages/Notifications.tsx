@@ -48,6 +48,7 @@ interface Notification {
   type: string;
   timestamp: Timestamp;
   isRead: boolean;
+  isRemoving?: boolean;
   actionId?: string;
   actionUrl?: string;
 }
@@ -90,6 +91,12 @@ const Notifications: React.FC = () => {
       );
     }
 
+    setNotifications((prev) =>
+      prev.map((notif) =>
+        notif.id === notification.id ? { ...notif, isRead: true } : notif
+      )
+    );
+
     if (notification.actionUrl) {
       history.push(notification.actionUrl);
     }
@@ -114,9 +121,23 @@ const Notifications: React.FC = () => {
 
   const handleDelete = async (notificationId: string) => {
     if (!user) return;
-    await deleteDoc(
-      doc(db, "users", user.uid, "notifications", notificationId)
+
+    // Add a "removing" class for animation
+    setNotifications((prev) =>
+      prev.map((notif) =>
+        notif.id === notificationId ? { ...notif, isRemoving: true } : notif
+      )
     );
+
+    setTimeout(async () => {
+      await deleteDoc(
+        doc(db, "users", user.uid, "notifications", notificationId)
+      );
+
+      setNotifications((prev) =>
+        prev.filter((notif) => notif.id !== notificationId)
+      );
+    }, 300);
   };
 
   const slidingRef = useRef<HTMLIonItemSlidingElement[]>([]);
@@ -124,7 +145,7 @@ const Notifications: React.FC = () => {
   const getIcon = (type: string) => {
     if (type === "price-drop") return pricetagOutline;
     if (type === "system") return checkmarkCircleOutline;
-    return pricetagOutline; // Default icon
+    return notificationsOutline; // Default icon
   };
 
   return (
@@ -136,7 +157,7 @@ const Notifications: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen scrollEvents>
         {loading ? (
-          <IonItem lines="none" className="notification-item unread">
+          <IonItem lines="none" className="notification-item skeleton">
             <IonAvatar slot="start" className="notification-avatar">
               <IonSkeletonText
                 animated
@@ -214,8 +235,8 @@ const Notifications: React.FC = () => {
                   detail={!!notif.actionUrl}
                   className={`notification-item ${
                     notif.isRead ? "read" : "unread"
-                  }`}
-                  lines={notif.isRead ? undefined : "none"}
+                  } ${notif.isRemoving ? "removing" : ""}`}
+                  lines="none"
                 >
                   <IonAvatar slot="start" className="notification-avatar">
                     <IonIcon

@@ -1,21 +1,40 @@
 .notifications {
+  ion-list {
+    background: transparent;
+  }
+
   .notification-item {
     border-radius: 10px;
     margin: 2px 0;
-    transition: transform 0.2s ease-in-out, background-color 0.3s;
+    transition: transform 0.3s ease-in-out, background-color 0.3s,
+      opacity 0.3s ease-in-out;
+  }
+
+  .notification-item.removing {
+    transform: translateX(-100%);
+    opacity: 0;
   }
 
   .notification-item.unread {
-    margin: 10px 2px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    margin: 7px 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .notification-item.skeleton {
+    margin: 15px 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   .notification-item.read {
-    box-shadow: none;
+    margin: 5px 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
 
   .notification-avatar {
     position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .notification-label {
