@@ -6,6 +6,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 export { removeProperty } from "./property/removeProperty";
+export { usernameTaken } from "./user/usernameTaken";
 
 /**
  * Updates the trending properties collection in the database.

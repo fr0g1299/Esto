@@ -1,29 +1,21 @@
 import {
   IonButton,
-  IonCheckbox,
   IonContent,
-  IonHeader,
   IonInput,
   IonPage,
-  IonText,
-  IonTitle,
-  IonToolbar,
   IonInputPasswordToggle,
+  IonImg,
+  IonList,
+  IonNote,
+  IonLoading,
 } from "@ionic/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { registerUser } from "../services/authService";
 import { MaskitoOptions, maskitoTransform } from "@maskito/core";
 import { useMaskito } from "@maskito/react";
 import { useHistory } from "react-router-dom";
+import "../styles/LoginAndRegistration.css";
 
-import { query, where, getDocs, collection } from "firebase/firestore";
-import { db } from "../firebase";
-
-const isUsernameTaken = async (username: string): Promise<boolean> => {
-  const q = query(collection(db, "users"), where("username", "==", username));
-  const snapshot = await getDocs(q);
-  return !snapshot.empty;
-};
 
 const Register: React.FC = () => {
   const history = useHistory();
@@ -32,14 +24,13 @@ const Register: React.FC = () => {
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] =
-    useState(true);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [errorMessageConfirm, setErrorMessageConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [isTouched, setIsTouched] = useState(false);
-  const [isValid, setIsValid] = useState<boolean>();
+  const [isEmailValid, setIsEmailValid] = useState<boolean | undefined>(
+    undefined
+  );
   const phoneMaskOptions: MaskitoOptions = {
     mask: [
       "+",
@@ -65,220 +56,310 @@ const Register: React.FC = () => {
     maskitoTransform("+420", phoneMaskOptions)
   );
 
-  const validateEmail = (email: string) => {
-    return email.match(
-      /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
-    );
+  const handleEmailChange = (event: Event) => {
+    const value = (event.target as HTMLInputElement).value.trim();
+    setEmail(value);
+    setEmailMessage("Špatný email");
+
+    if (value === "") {
+      setIsEmailValid(undefined);
+      return;
+    }
+
+    setIsEmailValid(isValidEmail(value));
   };
 
-  const validate = (event: Event) => {
-    const value = (event.target as HTMLInputElement).value;
-
-    setIsValid(undefined);
-
-    if (value === "") return;
-
-    setIsValid(validateEmail(value) !== null);
-    setEmail(value);
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
   };
 
   const markTouched = () => {
     setIsTouched(true);
   };
 
-  const handlePasswordChange = (e: CustomEvent) => {
-    const pass = e.detail.value;
-    setPassword(pass);
-    if (pass.length < 6) {
-      setErrorMessage("Password must be at least 6 characters long");
-    } else if (confirmPassword && pass !== confirmPassword) {
-      setErrorMessageConfirm("Passwords do not match");
+  const [emailMessage, setEmailMessage] = useState("Špatný email");
+  const [usernameMessage, setUsernameMessage] = useState(
+    "Uživatelské jméno je povinné"
+  );
+  const [isPassValid, setIsPassValid] = useState<boolean>();
+  const [isPassConfirmValid, setIsPassConfirmValid] = useState<boolean>();
+  const [isUserNameValid, setIsUserNameValid] = useState<boolean>();
+  const [isPhoneValid, setIsPhoneValid] = useState<boolean>();
+  const [isFirstNameValid, setIsFirstNameValid] = useState<boolean>();
+  const [isLastNameValid, setIsLastNameValid] = useState<boolean>();
+
+  useEffect(() => {
+    if (password.length < 6) {
+      setIsPassValid(false);
+    } else if (password !== confirmPassword) {
+      setIsPassValid(true);
+      setIsPassConfirmValid(false);
     } else {
-      setErrorMessage("");
-      setErrorMessageConfirm("");
+      setIsPassValid(true);
+      setIsPassConfirmValid(true);
     }
-  };
+    setIsUserNameValid(true);
+  }, [password, confirmPassword, username]);
 
-  const handleConfirmPasswordChange = (e: CustomEvent) => {
-    const confirm = e.detail.value;
-    setConfirmPassword(confirm);
+  const handleValidation = () => {
+    const results = {
+      isUserNameValid: !!username,
+      isPhoneValid: !!phone,
+      isFirstNameValid: !!firstName,
+      isLastNameValid: !!lastName,
+    };
 
-    console.log("Confirm password:", confirm);
-    console.log("Password:", password);
-
-    if (password !== confirm) {
-      setErrorMessageConfirm("Passwords do not match");
+    if (!username) {
+      setUsernameMessage("Uživatelské jméno je povinné");
+      setIsUserNameValid(false);
     } else {
-      console.log("Passwords match");
-      setErrorMessageConfirm("");
+      setIsUserNameValid(true);
     }
+    if (!phone) {
+      setIsPhoneValid(false);
+    } else {
+      setIsPhoneValid(true);
+    }
+    if (!firstName) {
+      setIsFirstNameValid(false);
+    } else {
+      setIsFirstNameValid(true);
+    }
+    if (!lastName) {
+      setIsLastNameValid(false);
+    } else {
+      setIsLastNameValid(true);
+    }
+
+    return results;
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const taken = await isUsernameTaken(username);
-    if (taken) {
-      alert("Username is already taken."); // TODO: Something better
+    const { isUserNameValid, isPhoneValid, isFirstNameValid, isLastNameValid } =
+      handleValidation();
+
+    console.log(
+      isEmailValid,
+      isPassValid,
+      isPassConfirmValid,
+      isUserNameValid,
+      isPhoneValid,
+      isFirstNameValid,
+      isLastNameValid
+    );
+
+    if (
+      !isEmailValid ||
+      !isPassValid ||
+      !isPassConfirmValid ||
+      !isUserNameValid ||
+      !isPhoneValid ||
+      !isFirstNameValid ||
+      !isLastNameValid
+    ) {
+      console.log("Invalid input");
       return;
     }
 
     try {
+      setLoading(true);
+
       const user = await registerUser(email, password, {
         username,
         phone,
         firstName,
         lastName,
-        pushNotificationsEnabled,
       });
+
+      setLoading(false);
       console.log("User registered:", user);
 
-      history.push("/login");
-    } catch (error) {
-      console.error("Error registering user:", error);
+      history.push("/home");
+      // eslint-disable-next-line
+    } catch (error: any) {
+      setLoading(false);
+      switch (error.code) {
+        case "auth/username-taken":
+          setUsernameMessage("Uživatelské jméno je již obsazeno");
+          setIsUserNameValid(false);
+          break;
+        case "auth/email-already-in-use":
+          setEmailMessage("E-mail je již zaregistrován");
+          setIsEmailValid(false);
+          break;
+        case "auth/password-does-not-meet-requirements":
+          setIsPassValid(false);
+          break;
+        default:
+          console.error("Error registering user:", error);
+      }
     }
   };
 
-  // TODO: Add error handling for registration
-  // TODO: What if the user is already registered?
-
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Register</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent fullscreen className="ion-padding">
-        <IonInput
-          className={`${isValid && "ion-valid"} ${
-            isValid === false && "ion-invalid"
-          } ${isTouched && "ion-touched"}`}
-          id="email"
-          type="email"
-          required
-          placeholder="Enter your email"
-          fill="solid"
-          autocomplete="email"
-          label="Email"
-          labelPlacement="floating"
-          errorText="Invalid email format"
-          onIonInput={(event) => validate(event)}
-          onIonBlur={() => markTouched()}
-        ></IonInput>
+    <IonPage className="registration-page">
+      <IonContent fullscreen>
+        <div className="content-container">
+          <div className="logo-container">
+            <IonImg
+              src="assets/logo/logo.svg"
+              alt="Logo"
+              className="logo smaller"
+            />
+          </div>
+          <div className="input-container">
+            <IonList>
+              <IonInput
+                className={`${isEmailValid && "ion-valid"} ${
+                  isEmailValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                id="email"
+                type="email"
+                required
+                fill="outline"
+                autocomplete="email"
+                label="E-mail"
+                labelPlacement="stacked"
+                placeholder="Zadejte e-mail"
+                errorText={emailMessage}
+                onIonInput={(event) => handleEmailChange(event)}
+                onIonBlur={() => markTouched()}
+              ></IonInput>
 
-        <IonInput
-          id="password"
-          type="password"
-          onIonInput={handlePasswordChange}
-          required
-          clearOnEdit={false}
-          fill="solid"
-          label="Password "
-        >
-          <IonInputPasswordToggle slot="end"></IonInputPasswordToggle>
-        </IonInput>
+              <IonInput
+                className={`${isPassValid && "ion-valid"} ${
+                  isPassValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                id="password"
+                type="password"
+                onIonInput={(e) => setPassword(e.detail.value!.trim())}
+                required
+                clearOnEdit={false}
+                fill="outline"
+                label="Heslo"
+                labelPlacement="stacked"
+                placeholder="Zadejte heslo"
+                errorText="Heslo musí mít alespoň 6 znaků"
+              >
+                <IonInputPasswordToggle
+                  slot="end"
+                  tabIndex={-1}
+                ></IonInputPasswordToggle>
+              </IonInput>
 
-        <IonText color="danger">{errorMessage}</IonText>
+              <IonInput
+                className={`${isPassConfirmValid && "ion-valid"} ${
+                  isPassConfirmValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                id="confirm-password"
+                type="password"
+                onIonInput={(e) => setConfirmPassword(e.detail.value!.trim())}
+                required
+                clearOnEdit={false}
+                fill="outline"
+                label="Potvrzení hesla"
+                labelPlacement="stacked"
+                placeholder="Zadejte heslo znovu"
+                errorText="Hesla se neshodují"
+              >
+                <IonInputPasswordToggle
+                  slot="end"
+                  tabIndex={-1}
+                ></IonInputPasswordToggle>
+              </IonInput>
 
-        <IonInput
-          id="confirm-password"
-          type="password"
-          onIonInput={handleConfirmPasswordChange}
-          required
-          clearOnEdit={false}
-          fill="solid"
-          label="Confirm "
-        >
-          <IonInputPasswordToggle slot="end"></IonInputPasswordToggle>
-        </IonInput>
+              <IonInput
+                className={`${isUserNameValid && "ion-valid"} ${
+                  isUserNameValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                id="username"
+                type="text"
+                placeholder="Zadejte své uživatelské jméno"
+                onIonInput={(e) => setUsername(e.detail.value!.trim())}
+                required
+                fill="outline"
+                label="Uživatelské jméno"
+                labelPlacement="stacked"
+                errorText={usernameMessage}
+              ></IonInput>
 
-        <IonText color="danger">{errorMessageConfirm}</IonText>
+              <IonInput
+                className={`${isPhoneValid && "ion-valid"} ${
+                  isPhoneValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                ref={(phoneInput) => {
+                  if (phoneInput) {
+                    phoneInput.getInputElement().then((input) => {
+                      phoneMask(input);
+                    });
+                  }
+                }}
+                id="phone"
+                type="tel"
+                value={phone}
+                placeholder="Zadejte telefonní číslo"
+                onIonInput={(e) => setPhone(e.detail.value!.trim())}
+                required
+                fill="outline"
+                label="Telefonní číslo"
+                labelPlacement="stacked"
+                errorText="Telefonní číslo je povinné"
+              ></IonInput>
 
-        <IonInput
-          id="username"
-          type="text"
-          placeholder="Enter your username"
-          onIonChange={(e) => setUsername(e.detail.value!)}
-          required
-          fill="solid"
-          label="Username"
-          labelPlacement="floating"
-        ></IonInput>
+              <IonInput
+                className={`${isFirstNameValid && "ion-valid"} ${
+                  isFirstNameValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                id="first-name"
+                type="text"
+                placeholder="Zadejte své křestní jméno"
+                onIonInput={(e) => setFirstName(e.detail.value!.trim())}
+                required
+                fill="outline"
+                label="Křestní jméno"
+                labelPlacement="stacked"
+                errorText="Křestní jméno je povinné"
+              ></IonInput>
 
-        <IonInput
-          ref={(phoneInput) => {
-            if (phoneInput) {
-              phoneInput.getInputElement().then((input) => {
-                phoneMask(input);
-              });
-            }
-          }}
-          id="phone"
-          type="text"
-          value={phone}
-          placeholder="+420 xxx xxx xxx"
-          onIonInput={(e) => setPhone(e.detail.value!)}
-          required
-          fill="solid"
-          label="Phone Number"
-          labelPlacement="floating"
-        ></IonInput>
+              <IonInput
+                className={`${isLastNameValid && "ion-valid"} ${
+                  isLastNameValid === false && "ion-invalid"
+                } ${isTouched && "ion-touched"}`}
+                id="last-name"
+                type="text"
+                placeholder="Zadejte své příjmení"
+                onIonInput={(e) => setLastName(e.detail.value!.trim())}
+                required
+                fill="outline"
+                label="Příjmení"
+                labelPlacement="stacked"
+                errorText="Příjmení je povinné"
+              ></IonInput>
+            </IonList>
 
-        <IonInput
-          id="first-name"
-          type="text"
-          placeholder="Enter your first name"
-          onIonChange={(e) => setFirstName(e.detail.value!)}
-          required
-          fill="solid"
-          label="First Name"
-          labelPlacement="floating"
-        ></IonInput>
-
-        <IonInput
-          id="last-name"
-          type="text"
-          placeholder="Enter your last name"
-          onIonChange={(e) => setLastName(e.detail.value!)}
-          required
-          fill="solid"
-          label="Last Name"
-          labelPlacement="floating"
-        ></IonInput>
-
-        <IonCheckbox
-          id="notifications"
-          value="notifications"
-          onIonChange={(e) => setPushNotificationsEnabled(e.detail.checked)}
-          checked={true}
-          className="ion-padding"
-        >
-          Enable Push Notifications
-        </IonCheckbox>
-        <IonButton
-          disabled={
-            !email ||
-            !password ||
-            !confirmPassword ||
-            !username ||
-            !phone ||
-            !firstName ||
-            !lastName ||
-            password !== confirmPassword ||
-            password.length < 6
-          }
-          onClick={handleRegister}
-          type="submit"
-          expand="full"
-          className="ion-padding"
-        >
-          Register
-        </IonButton>
-        <p>
-          Already have an account? <a href="/login">Login</a>
-        </p>
+            <IonButton
+              disabled={!isEmailValid || !isPassValid || !isPassConfirmValid}
+              onClick={handleRegister}
+            >
+              Registrovat se
+            </IonButton>
+          </div>
+          <IonNote className="note">
+            Už máte účet?&nbsp;&nbsp;
+            <strong>
+              <a href="/login">Přihlásit se</a>
+            </strong>
+          </IonNote>
+        </div>
       </IonContent>
+      <IonLoading
+        isOpen={loading}
+        message="Registrace probíhá..."
+        spinner="crescent"
+      />
     </IonPage>
   );
 };
