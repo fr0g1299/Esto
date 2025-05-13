@@ -17,6 +17,8 @@ import {
   addDoc,
   collection,
 } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase";
 
 export interface UserProfile {
   firstName: string;
@@ -26,7 +28,7 @@ export interface UserProfile {
   username: string;
   createdAt?: Date;
   lastSeen?: Date;
-  pushNotificationsEnabled: boolean;
+  pushNotificationsEnabled?: boolean;
   userRole: "User" | "Admin";
 }
 
@@ -39,6 +41,21 @@ export const registerUser = async (
   >
 ) => {
   try {
+    const usernameTaken = httpsCallable(functions, "usernameTaken");
+
+    try {
+      const result = await usernameTaken({ username: userData.username });
+
+      const data = result.data as { isTaken: boolean };
+      console.log("Username check result:", data);
+      if (data.isTaken) {
+        throw new Error("auth/username-taken");
+      }
+    } catch (error) {
+      console.error("Error during username check:", error);
+      throw error;
+    }
+
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -83,8 +100,6 @@ export const registerUser = async (
       actionUrl: null,
     });
 
-    await signOut(auth);
-
     return user;
   } catch (error) {
     console.error("Error registering user:", error);
@@ -102,7 +117,7 @@ export const loginUser = async (email: string, password: string) => {
     const user = userCredential.user;
     console.log("User logged in:", user);
 
-    // For future use: Uncomment if you want to check email verification
+    // // For future use: Uncomment if you want to check email verification
     // if (user && !user.emailVerified) {
     //   await auth.signOut();
     //   throw new Error("Please verify your email before logging in.");
