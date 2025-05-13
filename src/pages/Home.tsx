@@ -39,7 +39,6 @@ import { Autoplay, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import { useAuth } from "../hooks/useAuth";
-import { auth } from "../firebase";
 
 const slideOpts = {
   slidesPerView: 1.2,
@@ -147,15 +146,6 @@ const Home: React.FC = () => {
     setUnreadCount(snapshot.size); // For future use, right now size color is transparent
   };
 
-  const signOut = async () => {
-    try {
-      await auth.signOut();
-      console.log("User signed out");
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
   return (
     <IonPage className="home-page">
       <IonContent fullscreen scrollEvents>
@@ -195,9 +185,14 @@ const Home: React.FC = () => {
                 </IonButton>
               </IonCol>
             ) : (
-              <IonButton fill="outline" onClick={() => history.push("/login")}>
-                <IonText className="ion-padding">Přihlásit se</IonText>
-              </IonButton>
+              <a
+                className="login"
+                onClick={() => {
+                  history.push("/login");
+                }}
+              >
+                Přihlásit se
+              </a>
             )}
           </IonRow>
         </IonGrid>
@@ -343,29 +338,9 @@ const Home: React.FC = () => {
                 </IonCardContent>
               </IonCard>
             ))}
-
-        <IonButton
-          expand="block"
-          fill="outline"
-          className="ion-padding"
-          onClick={() => console.log(user)}
-        >
-          is logged in?
-        </IonButton>
-
-        <IonButton onClick={() => history.push("/login")}>
-          <IonText className="ion-padding">Login</IonText>
-        </IonButton>
-        <IonButton onClick={() => history.push("/register")}>
-          <IonText className="ion-padding">Register</IonText>
-        </IonButton>
-        <IonButton onClick={signOut}>
-          <IonText className="ion-padding">Sign Out</IonText>
-        </IonButton>
       </IonContent>
     </IonPage>
   );
 };
-// };
 
 export default Home;

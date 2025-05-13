@@ -96,4 +96,10 @@
   .icon-shadow {
     filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
   }
+  .login {
+    color: var(--ion-color-primary);
+    font-weight: 500;
+    margin-left: auto;
+    text-decoration: none;
+  }
 }
