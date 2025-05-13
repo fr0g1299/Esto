@@ -108,7 +108,7 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <IonPage>
+    <IonPage className="chat-page">
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
@@ -174,6 +174,7 @@ const Chat: React.FC = () => {
               onFocus={() => setShowEmojiPicker(false)}
               autoGrow
               spellcheck
+              autoCorrect="on"
               rows={1}
               inputMode="text"
             ></IonTextarea>

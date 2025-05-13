@@ -479,13 +479,12 @@ const Settings: React.FC = () => {
             lines="none"
             button
             onClick={() =>
-              //TODO: Email
-              (window.location.href = "mailto:@gmail.com")
+              (window.location.href = "mailto:esto.contact.team@gmail.com")
             }
           >
             <IonLabel className="ion-text-wrap">
               <h2>Kontaktujte nás</h2>
-              <p className="email-note">@gmail.com</p>
+              <p className="email-note">esto.contact.team@gmail.com</p>
             </IonLabel>
             <IonIcon icon={mailOutline} slot="end" />
           </IonItem>
