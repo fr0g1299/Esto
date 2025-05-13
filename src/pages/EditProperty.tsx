@@ -16,22 +16,19 @@ import {
   IonAccordionGroup,
   IonAccordion,
   IonCheckbox,
-  IonRow,
-  IonCol,
   IonDatetime,
   IonButtons,
   IonBackButton,
   useIonToast,
   IonIcon,
   IonText,
+  IonItemDivider,
+  IonNote,
+  IonTextarea,
 } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { useParams, useHistory } from "react-router";
-import {
-  getPropertyById,
-  removeProperty,
-  updateProperty,
-} from "../services/propertyService";
+import { getPropertyById, updateProperty } from "../services/propertyService";
 import FormInput from "../components/ui/FormInput";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import { MaskitoOptions, maskitoTransform } from "@maskito/core";
@@ -44,9 +41,12 @@ import "../styles/CreateAndEdit.css";
 import { useAuth } from "../hooks/useAuth";
 import { homeOutline, lockClosedOutline } from "ionicons/icons";
 import { useStorage } from "../hooks/useStorage";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase";
+import { geocodeAddress } from "../services/geocodingService";
 
 interface RouteParams {
-  id: string;
+  propertyId: string;
 }
 
 interface UploadedImage {
@@ -61,12 +61,12 @@ const EditProperty: React.FC = () => {
   const { user } = useAuth();
   const { get, set } = useStorage();
   const [ownerId, setOwnerId] = useState("");
-  const { id } = useParams<RouteParams>();
+  const { propertyId } = useParams<RouteParams>();
   const history = useHistory();
   useTabBarScrollEffect();
   const [loading, setLoading] = useState(true);
   const [showToast] = useIonToast();
-  const [removeInputCheck, setRemoveInputCheck] = useState(false);
+  const [deleteCheck, setDeleteCheck] = useState<string>("");
 
   // States for property details, that can be filtered
   const [title, setTitle] = useState("");
@@ -76,9 +76,9 @@ const EditProperty: React.FC = () => {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [type, setType] = useState<
-    "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa"
-  >("Byt");
-  const [disposition, setDisposition] = useState("3+1");
+    "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa" | ""
+  >("");
+  const [disposition, setDisposition] = useState("");
 
   // States for chips
   const [garage, setGarage] = useState(false);
@@ -139,7 +139,7 @@ const EditProperty: React.FC = () => {
       label: "Počet koupelen",
       value: bathroomCount,
       onChange: setBathroomCount,
-      min: 1,
+      min: 0,
     },
     {
       label: "Počet parkovacích míst",
@@ -168,7 +168,7 @@ const EditProperty: React.FC = () => {
     },
     { label: "Sklep", checked: basement, setter: setBasement },
     { label: "Zařízený", checked: furnished, setter: setFurnished },
-    { label: "Balkon", checked: balcony, setter: setBalcony },
+    { label: "Balkón", checked: balcony, setter: setBalcony },
     { label: "Bazén", checked: pool, setter: setPool },
     { label: "Zahrada", checked: garden, setter: setGarden },
     { label: "Solární panely", checked: solarPanels, setter: setSolarPanels },
@@ -206,11 +206,15 @@ const EditProperty: React.FC = () => {
     "Rychlovarná konvice",
     "Mixér",
   ];
+  const removeProperty = httpsCallable(functions, "removeProperty");
 
   useEffect(() => {
+    setLoading(true);
+    console.log("Loading property with ID:", propertyId);
+
     const loadProperty = async () => {
       try {
-        const data = await getPropertyById(id);
+        const data = await getPropertyById(propertyId);
         setOwnerId(data.ownerId);
         setTitle(data.title);
         setPrice(data.price.toString());
@@ -239,7 +243,11 @@ const EditProperty: React.FC = () => {
         setKitchenEquipment(data.kitchenEquipment);
         setHeatingType(data.heatingType);
         setPostalCode(data.postalCode);
-        setImages(data.images as UploadedImage[]); // Set images if available
+        setImages(
+          (data.images as UploadedImage[]).sort(
+            (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+          )
+        ); // Set and sort images by sortOrder if available
       } catch (error) {
         console.error(error);
       } finally {
@@ -248,59 +256,92 @@ const EditProperty: React.FC = () => {
     };
 
     loadProperty();
-  }, [id]);
+  }, [propertyId]);
 
   const handleSave = async () => {
-    await updateProperty(
-      id,
-      {
-        title,
-        price,
-        address,
-        city,
-        type,
-        disposition,
-        garage,
-        elevator,
-        gasConnection,
-        threePhaseElectricity,
-        basement,
-        furnished,
-        balcony,
-        garden,
-        solarPanels,
-        pool,
-      },
-      {
-        yearBuilt,
-        floors,
-        bathroomCount,
-        gardenSize,
-        propertySize,
-        parkingSpots,
-        rooms,
-        description,
-        kitchenEquipment,
-        heatingType,
-        postalCode,
-      },
-      images.filter((image): image is File => image instanceof File),
-      images.filter(
-        (image): image is UploadedImage => !(image instanceof File)
-      ),
-      removedUploadedImages
-    );
-    showToast("Inzerát byl úspěšně upraven!", 1500);
-    setTimeout(() => history.push(`/details/${id}`), 1500);
+    if (!user) return;
+
+    if (images.length < 3) {
+      showToast("Musíte vybrat alespoň 3 obrázky.", 2500);
+      return;
+    }
+    if (!garden) {
+      setGardenSize("");
+    }
+    if (type === "") {
+      showToast("Musíte vybrat typ nemovitosti.", 2500);
+      return;
+    }
+    try {
+      const { latitude, longitude } = await geocodeAddress(address);
+
+      await updateProperty(
+        propertyId,
+        {
+          title,
+          price,
+          address,
+          city,
+          type,
+          disposition,
+          geolocation: { latitude, longitude },
+          garage,
+          elevator,
+          gasConnection,
+          threePhaseElectricity,
+          basement,
+          furnished,
+          balcony,
+          garden,
+          solarPanels,
+          pool,
+        },
+        {
+          yearBuilt,
+          floors,
+          bathroomCount,
+          gardenSize,
+          propertySize,
+          parkingSpots,
+          rooms,
+          description,
+          kitchenEquipment,
+          heatingType,
+          postalCode,
+        },
+        images.filter((image): image is File => image instanceof File),
+        images.filter(
+          (image): image is UploadedImage => !(image instanceof File)
+        ),
+        removedUploadedImages
+      );
+      showToast("Inzerát byl úspěšně upraven!", 1500);
+      setTimeout(() => history.push(`/details/${propertyId}`), 1500);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Address not found") {
+          showToast("Adresa nebyla nalezena.", 2500);
+        } else {
+          showToast(error.message, 2500);
+        }
+      }
+    }
   };
 
   const handleRemove = async () => {
-    await removeProperty(id);
+    if (!user) return;
+
+    try {
+      const result = await removeProperty({ propertyId });
+      console.log("Property deleted:", result.data);
+    } catch (error) {
+      console.error("Error deleting property:", error);
+    }
 
     const viewedHistory: { id: string }[] = (await get("viewedHistory")) || [];
 
     const updatedHistory = viewedHistory.filter(
-      (p: { id: string }) => p.id !== id
+      (p: { id: string }) => p.id !== propertyId
     );
 
     console.log("Updated history after removal:", updatedHistory);
@@ -309,14 +350,6 @@ const EditProperty: React.FC = () => {
 
     showToast("Inzerát byl úspěšně smazán!", 3000);
     setTimeout(() => history.replace("/"), 1500);
-  };
-
-  const handleRemoveInput = async (e: string) => {
-    if (e == "Chci vymazat inzerát") {
-      setRemoveInputCheck(true);
-    } else {
-      setRemoveInputCheck(false);
-    }
   };
 
   return (
@@ -353,157 +386,218 @@ const EditProperty: React.FC = () => {
           </div>
         ) : (
           <>
+            <IonItemDivider>
+              <IonLabel>Základní informace</IonLabel>
+            </IonItemDivider>
             <IonList lines="full" className="input-list">
-              <FormInput
-                label="Název inzerátu"
-                value={title}
-                onChange={setTitle}
-              />
-              <FormInput
-                label="Cena (Kč)"
-                value={priceString}
-                onChange={setPrice}
-                type="number"
-              />
-              <FormInput label="Adresa" value={address} onChange={setAddress} />
-
-              <FormInput label="Město" value={city} onChange={setCity} />
-              <IonSelect
-                interface="popover"
-                fill="outline"
-                value={type}
-                label="Typ nemovitosti"
-                labelPlacement="floating"
-                onIonChange={(e) => setType(e.detail.value)}
-              >
-                {["Byt", "Apartmán", "Dům", "Vila", "Chata", "Chalupa"].map(
-                  (type) => (
-                    <IonSelectOption key={type} value={type}>
-                      {type}
-                    </IonSelectOption>
-                  )
-                )}
-              </IonSelect>
+              <IonItem lines="none">
+                <FormInput
+                  label="Název inzerátu"
+                  value={title}
+                  onChange={setTitle}
+                  spellCheck
+                  autoCorrect="on"
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <FormInput
+                  label="Cena (Kč)"
+                  value={priceString}
+                  onChange={setPrice}
+                  type="number"
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <FormInput
+                  label="Adresa"
+                  value={address}
+                  onChange={setAddress}
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <FormInput label="Město" value={city} onChange={setCity} />
+              </IonItem>
             </IonList>
 
-            {/* Chips */}
-            {chipOptions.map(({ label, checked, setter }) => (
-              <ToggleChip
-                key={label}
-                label={label}
-                checked={checked}
-                onToggle={() => setter(!checked)}
-              />
-            ))}
-
-            {/* Disposition selector */}
-            <IonList lines="full" className="input-list">
-              <IonSelect
-                value={disposition}
-                onIonChange={(e) => setDisposition(e.detail.value)}
-                interface="action-sheet"
-                fill="outline"
-                label="Dispozice"
-              >
-                {dispositionOptions.map((disp) => (
-                  <IonSelectOption key={disp} value={disp}>
-                    {disp}
+            <IonItemDivider>
+              <IonLabel>Typ nemovitosti</IonLabel>
+            </IonItemDivider>
+            <IonSelect
+              interface="popover"
+              fill="outline"
+              value={type}
+              label={type === "" ? "Vyberte..." : undefined}
+              className="ion-padding-start ion-padding-end"
+              onIonChange={(e) => setType(e.detail.value)}
+            >
+              {["Byt", "Apartmán", "Dům", "Vila", "Chata", "Chalupa"].map(
+                (type) => (
+                  <IonSelectOption key={type} value={type}>
+                    {type}
                   </IonSelectOption>
-                ))}
-              </IonSelect>
+                )
+              )}
+            </IonSelect>
 
-              {/* Stepper inputs */}
-              {stepperInputs.map(({ label, value, onChange, min }) => (
-                <StepperInput
+            {/* Chips */}
+            <IonItemDivider>
+              <IonLabel>Vybavení</IonLabel>
+            </IonItemDivider>
+            <div className="chip-container">
+              {chipOptions.map(({ label, checked, setter }) => (
+                <ToggleChip
                   key={label}
                   label={label}
-                  value={value}
-                  onChange={onChange}
-                  min={min}
+                  checked={checked}
+                  onToggle={() => setter(!checked)}
                 />
+              ))}
+            </div>
+
+            {/* Disposition selector */}
+            <IonItemDivider>
+              <IonLabel>Dispozice</IonLabel>
+            </IonItemDivider>
+            <IonSelect
+              value={disposition}
+              onIonChange={(e) => setDisposition(e.detail.value)}
+              interface="action-sheet"
+              fill="outline"
+              className="ion-padding-start ion-padding-end"
+              label={disposition === "" ? "Vyberte..." : undefined}
+              cancelText="Zrušit"
+            >
+              {dispositionOptions.map((disp) => (
+                <IonSelectOption key={disp} value={disp}>
+                  {disp}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+
+            {/* Stepper inputs */}
+            <IonItemDivider>
+              <IonLabel>Vnitřní uspořádání</IonLabel>
+            </IonItemDivider>
+            <IonList lines="full" className="input-list">
+              {stepperInputs.map(({ label, value, onChange, min }) => (
+                <IonItem key={label} lines="none">
+                  <StepperInput
+                    key={label}
+                    label={label}
+                    value={value}
+                    onChange={onChange}
+                    min={min}
+                  />
+                </IonItem>
               ))}
             </IonList>
 
             {/* Year picker */}
-            <IonRow className="ion-padding-start ion-align-items-center">
-              <IonCol size="auto" className="ion-padding-start">
-                <IonLabel>Rok výstavby</IonLabel>
-              </IonCol>
-              <IonCol className="ion-padding-end">
-                <IonDatetime
-                  presentation="year"
-                  min="1800"
-                  value={yearBuilt.toString()}
-                  onIonChange={(e) => {
-                    const date = new Date(
-                      Array.isArray(e.detail.value)
-                        ? e.detail.value[0]
-                        : e.detail.value!
-                    );
-                    setYearBuilt(date.getFullYear());
-                  }}
-                />
-              </IonCol>
-            </IonRow>
+            <IonItemDivider>
+              <IonLabel>Rok výstavby</IonLabel>
+            </IonItemDivider>
+            <IonDatetime
+              presentation="year"
+              min="1800"
+              value={yearBuilt.toString()}
+              onIonChange={(e) => {
+                const date = new Date(
+                  Array.isArray(e.detail.value)
+                    ? e.detail.value[0]
+                    : e.detail.value!
+                );
+                setYearBuilt(date.getFullYear());
+              }}
+            />
+
+            <IonItemDivider>
+              <IonLabel>Popis</IonLabel>
+            </IonItemDivider>
+            <div className="textarea-container">
+              <IonTextarea
+                color="primary"
+                placeholder="Popis nemovitosti"
+                value={description}
+                onIonInput={(e) => setDescription(e.detail.value!)}
+                autoGrow
+                spellcheck
+                autoCorrect="on"
+                rows={1}
+                inputMode="text"
+              ></IonTextarea>
+            </div>
 
             {/* More Inputs */}
+            <IonItemDivider>
+              <IonLabel>Detailní informace</IonLabel>
+            </IonItemDivider>
             <IonList lines="full" className="input-list">
-              <IonInput
-                ref={(postalCode) => {
-                  if (postalCode) {
-                    postalCode.getInputElement().then((input) => {
-                      postalCodeMask(input);
-                    });
-                  }
-                }}
-                id="postalCode"
-                type="text"
-                value={postalCode}
-                placeholder="000 00"
-                onIonInput={(e) => setPostalCode(e.detail.value!)}
-                required
-                fill="solid"
-                label="PSČ"
-                labelPlacement="floating"
-              ></IonInput>
-              <FormInput
-                label="Popis"
-                value={description}
-                onChange={setDescription}
-              />
-              <FormInput
-                label="Typ vytápění"
-                value={heatingType}
-                onChange={setHeatingType}
-              />
-              <FormInput
-                label="Velikost zahrady (m²)"
-                value={gardenSizeString}
-                onChange={setGardenSize}
-                type="number"
-                disabled={!garden}
-              />
-              <FormInput
-                label="Velikost pozemku (m²)"
-                value={propertySizeString}
-                onChange={setPropertySize}
-                type="number"
-              />
+              <IonItem lines="none">
+                <IonInput
+                  ref={(postalCode) => {
+                    if (postalCode) {
+                      postalCode.getInputElement().then((input) => {
+                        postalCodeMask(input);
+                      });
+                    }
+                  }}
+                  id="postalCode"
+                  type="text"
+                  value={postalCode}
+                  placeholder="000 00"
+                  onIonInput={(e) => setPostalCode(e.detail.value!)}
+                  required
+                  fill="solid"
+                  label="PSČ"
+                  labelPlacement="floating"
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <FormInput
+                  label="Typ vytápění"
+                  value={heatingType}
+                  onChange={setHeatingType}
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <FormInput
+                  label="Velikost zahrady (m²)"
+                  value={gardenSizeString}
+                  onChange={setGardenSize}
+                  type="number"
+                  disabled={!garden}
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <FormInput
+                  label="Velikost pozemku (m²)"
+                  value={propertySizeString}
+                  onChange={setPropertySize}
+                  type="number"
+                />
+              </IonItem>
             </IonList>
 
             {/* Kitchen Equipment */}
             <IonAccordionGroup
               multiple
               expand="inset"
-              className="accordion-group"
+              className="accordion-group ion-no-margin"
             >
               <IonAccordion value="interiorDetails">
                 <IonItem slot="header" color="light">
                   <IonLabel>Vybavení kuchyně</IonLabel>
                 </IonItem>
                 <IonList slot="content">
-                  {kitchenEquipmentOptions.map((item) => (
-                    <IonItem key={item}>
+                  {kitchenEquipmentOptions.map((item, index) => (
+                    <IonItem
+                      key={item}
+                      lines={
+                        index === kitchenEquipmentOptions.length - 1
+                          ? "none"
+                          : undefined
+                      }
+                    >
                       <IonCheckbox
                         slot="start"
                         checked={kitchenEquipment.includes(item)}
@@ -524,32 +618,72 @@ const EditProperty: React.FC = () => {
               </IonAccordion>
             </IonAccordionGroup>
 
-            <IonItem lines="none">
-              <IonLabel>Nahrát obrázky (min 3, max 20)</IonLabel>
-            </IonItem>
-
+            <IonItemDivider>
+              <IonLabel>Nahrání obrázků</IonLabel>
+              <IonNote slot="end">Minimálně 3, maximálně 20 obrázků</IonNote>
+            </IonItemDivider>
             <ImageUploader
               images={images}
               setImages={setImages}
               max={20}
               onRemoveUploadedImage={handleRemoveUploadedImage}
             />
-            <IonLabel>Pro vymazání napište: Chci vymazat inzerát</IonLabel>
-            <IonInput
-              onIonInput={(e) => handleRemoveInput(e.detail.value!)}
-            ></IonInput>
 
             <IonButton
-              id="remove-alert"
+              id="save-alert"
               expand="block"
-              color="danger"
-              disabled={!removeInputCheck}
+              disabled={
+                images.length < 3 ||
+                !title ||
+                !price ||
+                !address ||
+                !type ||
+                !disposition
+              }
+              onClick={() => {
+                console.log("title ", title);
+                showToast("Změny byly uloženy!", 1500);
+              }}
             >
-              Smazat inzerát
-            </IonButton>
-
-            <IonButton id="save-alert" expand="block">
               Uložit změny
+            </IonButton>
+            <IonItemDivider>
+              <IonLabel>Vymazání inzerátu</IonLabel>
+            </IonItemDivider>
+            <IonList
+              className="ion-no-margin ion-padding-bottom ion-padding-top input-list"
+              lines="none"
+            >
+              <div className="account-delete">
+                <IonText color="danger">
+                  Tímto vymažete tento inzerát a všechny související data. Tato
+                  akce je nevratná.
+                </IonText>
+                <IonInput
+                  label="Kontrolní text"
+                  value={deleteCheck}
+                  onIonInput={(e) => setDeleteCheck(e.detail.value!)}
+                  required
+                  fill="outline"
+                  labelPlacement="floating"
+                  type="text"
+                ></IonInput>
+                <IonNote>
+                  Pro odemknutí tlačítka napište&nbsp;
+                  <strong>souhlasím</strong>
+                  &nbsp;do pole výše
+                </IonNote>
+              </div>
+            </IonList>
+            <IonButton
+              expand="block"
+              fill="outline"
+              color="danger"
+              id="delete-alert"
+              disabled={deleteCheck.toUpperCase().trim() !== "SOUHLASÍM"}
+              style={{ marginTop: "20px" }}
+            >
+              Vymazat inzerát
             </IonButton>
             <IonAlert
               trigger="save-alert"
@@ -560,9 +694,6 @@ const EditProperty: React.FC = () => {
                   text: "Zrušit",
                   role: "cancel",
                   cssClass: "secondary",
-                  handler: () => {
-                    console.log("Cancel clicked");
-                  },
                 },
                 {
                   text: "Ano",
@@ -573,7 +704,7 @@ const EditProperty: React.FC = () => {
               ]}
             ></IonAlert>
             <IonAlert
-              trigger="remove-alert"
+              trigger="delete-alert"
               header="Opravdu chcete smazat inzerát?"
               message="Pokud smažete inzerát, nebude možné ho obnovit."
               buttons={[
@@ -581,9 +712,6 @@ const EditProperty: React.FC = () => {
                   text: "Zrušit",
                   role: "cancel",
                   cssClass: "secondary",
-                  handler: () => {
-                    console.log("Cancel clicked");
-                  },
                 },
                 {
                   text: "Ano",

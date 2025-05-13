@@ -6,6 +6,8 @@ interface Props<T extends string | number> {
   value?: T;
   fill?: "solid" | "outline";
   type?: "text" | "number" | "password";
+  spellCheck?: boolean;
+  autoCorrect?: "on" | "off";
   onChange: (val: T) => void;
   disabled?: boolean;
   filter?: (value: string) => string; // For future use
@@ -18,6 +20,8 @@ function FormInput<T extends string | number>({
   onChange,
   fill = "solid",
   type = "text",
+  spellCheck = false,
+  autoCorrect = "off",
   disabled,
   filter,
 }: Props<T>) {
@@ -47,10 +51,14 @@ function FormInput<T extends string | number>({
       labelPlacement="floating"
       disabled={disabled}
       clearOnEdit={false}
+      autoCorrect={autoCorrect}
+      spellcheck={spellCheck}
       ref={ionInputEl}
       onIonInput={handleInput}
     >
-      {type === "password" && <IonInputPasswordToggle slot="end" />}
+      {type === "password" && (
+        <IonInputPasswordToggle slot="end" tabIndex={-1} />
+      )}
     </IonInput>
   );
 }

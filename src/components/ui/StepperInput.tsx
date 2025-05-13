@@ -2,10 +2,10 @@ import React from "react";
 import {
   IonItem,
   IonLabel,
-  IonInput,
   IonButton,
   IonIcon,
   IonButtons,
+  IonText,
 } from "@ionic/react";
 import { addOutline, removeOutline } from "ionicons/icons";
 
@@ -30,23 +30,22 @@ const StepperInput: React.FC<StepperInputProps> = ({
   const decrement = () => onChange(Math.max(value - step, min));
 
   return (
-    <IonItem>
+    <IonItem lines="none">
       <IonLabel>{label}</IonLabel>
-      <IonButtons slot="end">
-        <IonButton onClick={decrement}>
+      <IonButtons className="stepper-buttons" slot="end">
+        <IonButton
+          className="stepper-button"
+          onClick={decrement}
+          disabled={value <= min}
+        >
           <IonIcon icon={removeOutline} />
         </IonButton>
-        <IonInput
-          type="number"
-          value={value}
-          onIonInput={(e) =>
-            onChange(
-              Math.min(Math.max(parseInt(e.detail.value!, 10) || min, min), max)
-            )
-          }
-          style={{ textAlign: "center", width: "60px" }}
-        />
-        <IonButton onClick={increment}>
+        <IonText className="ion-margin-start ion-margin-end">{value}</IonText>
+        <IonButton
+          className="stepper-button"
+          onClick={increment}
+          disabled={value >= max}
+        >
           <IonIcon icon={addOutline} />
         </IonButton>
       </IonButtons>

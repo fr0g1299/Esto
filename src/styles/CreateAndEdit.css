@@ -1,19 +1,96 @@
 .create-page,
 .edit-page {
+  ion-content {
+    --padding-top: var(--safe-area-inset-top) !important;
+  }
+
+  ion-item-divider {
+    border-bottom: 0px;
+  }
+
+  .input-list {
+    border-radius: 15px;
+  }
+
+  ion-item::part(native) {
+    padding-right: 16px;
+    --inner-padding-end: 0px;
+  }
+
+  ion-item {
+    width: 100%;
+  }
+
   .input-list {
     display: flex;
     flex-direction: column;
     gap: 15px;
   }
 
-  .accordion-group {
-    margin-bottom: 25px;
+  ion-accordion.accordion-expanding,
+  ion-accordion.accordion-expanded {
+    width: 100%;
+    margin: 16px auto !important;
+    transition: width 0.3s ease-in-out;
+  }
+
+  ion-accordion.accordion-collapsing,
+  ion-accordion.accordion-collapsed {
+    width: 90%;
+    margin: 16px auto;
+    transition: width 0.3s ease-in-out;
+  }
+
+  .chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stepper-buttons {
+    height: 100%;
+  }
+
+  .stepper-button {
+    height: 100%;
+    font-size: 1rem;
   }
 
   ion-datetime {
     width: 100%;
     max-width: none;
+    --background: linear-gradient(
+      to right,
+      transparent,
+      #fd532d2c 50%,
+      transparent
+    );
   }
+
+  .textarea-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border-radius: 10px;
+    background-color: var(--ion-item-background);
+    padding-top: 1px;
+    padding-bottom: 2px;
+    padding-inline: 10px;
+    width: 100%;
+    color: var(--ion-text-color);
+  }
+
+  ion-textarea {
+    --padding-start: 5px;
+    --padding-end: 5px;
+    max-height: 500px;
+  }
+
+  ion-textarea textarea {
+    overflow-y: auto !important;
+    padding-top: 14px !important;
+    max-height: 500px;
+  }
+
   .empty-state {
     position: absolute;
     top: 0px;
