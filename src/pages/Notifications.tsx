@@ -36,6 +36,7 @@ import "../styles/Notifications.css";
 import {
   checkmarkCircleOutline,
   homeOutline,
+  mailOutline,
   notificationsOutline,
   pricetagOutline,
 } from "ionicons/icons";
@@ -145,6 +146,7 @@ const Notifications: React.FC = () => {
   const getIcon = (type: string) => {
     if (type === "price-drop") return pricetagOutline;
     if (type === "system") return checkmarkCircleOutline;
+    if (type === "message") return mailOutline;
     return notificationsOutline; // Default icon
   };
 

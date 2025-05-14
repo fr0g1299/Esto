@@ -117,7 +117,7 @@ const Chat: React.FC = () => {
           <IonTitle>
             {userContact?.firstName} {userContact?.lastName}
           </IonTitle>
-          <IonButtons slot="end">
+          <IonButtons slot="end" style={{ marginRight: "15px" }}>
             <IonIcon
               icon={homeOutline}
               color="medium"

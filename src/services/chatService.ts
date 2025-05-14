@@ -11,6 +11,7 @@ import {
   Timestamp,
   getDoc,
 } from "firebase/firestore";
+import { sendMessageNotification } from "./notificationsService";
 
 const generateChatId = (user1: string, user2: string, propertyId: string) => {
   const sortedUsers = [user1, user2].sort();
@@ -83,6 +84,12 @@ export const sendMessage = async (
     },
     { merge: true }
   );
+
+  try {
+    await sendMessageNotification(chatId, senderId, text);
+  } catch (error) {
+    console.error("Error sending message notification:", error);
+  }
 };
 
 export const subscribeToMessages = (
