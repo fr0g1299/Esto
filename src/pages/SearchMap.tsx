@@ -174,7 +174,6 @@ const SearchMap: React.FC = () => {
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy;'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            className="map-tiles"
           />
           <MarkerClusterGroup
             spiderfyDistanceMultiplier={1}
