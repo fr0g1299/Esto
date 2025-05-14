@@ -242,14 +242,14 @@ const SearchResults: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton></IonBackButton>
           </IonButtons>
-          <IonButtons slot="end">
+          <IonButtons slot="end" style={{ paddingRight: "15px" }}>
             <IonIcon
               icon={mapOutline}
               slot="icon-only"
               onClick={() => history.push("/searchmap", { properties })}
             />
           </IonButtons>
-          <IonButtons slot="end">
+          <IonButtons slot="end" style={{ paddingRight: "15px" }}>
             <IonIcon icon={starOutline} slot="icon-only" id="favorite-alert" />
           </IonButtons>
           <IonTitle>Výsledky hledání</IonTitle>

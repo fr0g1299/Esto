@@ -29,7 +29,7 @@ import {
   removePropertyFromFolder,
 } from "../services/favoritesService";
 import { useParams, useLocation, useHistory } from "react-router";
-import { homeOutline, trash } from "ionicons/icons";
+import { homeOutline, trashOutline } from "ionicons/icons";
 
 import "../styles/Folder.css";
 
@@ -112,9 +112,10 @@ const Folder: React.FC = () => {
             <>
               {name !== "Oblíbené" && (
                 <>
-                  <IonButtons slot="end">
+                  <IonButtons slot="end" style={{ paddingRight: "15px" }}>
                     <IonIcon
-                      icon={trash}
+                      icon={trashOutline}
+                      color="danger"
                       size="large"
                       id="delete-alert"
                       slot="icon-only"
