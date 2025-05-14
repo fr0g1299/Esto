@@ -11,7 +11,7 @@ import {
   IonToolbar,
   useIonToast,
 } from "@ionic/react";
-import { useRef } from "react";
+import { useRef, useState, useEffect, useMemo, memo } from "react";
 import { DragEndEvent } from "@dnd-kit/core";
 import "./ImageUploader.css";
 import {
@@ -25,34 +25,12 @@ import {
   arrayMove,
   SortableContext,
   useSortable,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const SortableImage = ({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    touchAction: "none",
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
-    </div>
-  );
-};
-
 interface UploadedImage {
+  id?: string;
   imageUrl: string;
   altText?: string;
   sortOrder?: number;
@@ -60,12 +38,45 @@ interface UploadedImage {
 
 type ImageType = File | UploadedImage;
 
+interface ImageWithId {
+  id: string;
+  image: ImageType;
+}
+
 interface Props {
   images: ImageType[];
   setImages: (files: ImageType[]) => void;
   max?: number;
-  onRemoveUploadedImage?: (image: UploadedImage) => void; // Callback for removing already uploaded images
+  onRemoveUploadedImage?: (image: UploadedImage) => void;
 }
+
+import React from "react";
+
+const SortableImage = memo(
+  ({ id, children }: { id: string; children: React.ReactNode }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition: transition,
+      touchAction: "none",
+      zIndex: isDragging ? 10 : 0,
+    };
+
+    return (
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        {children}
+      </div>
+    );
+  }
+);
 
 const ImageUploader: React.FC<Props> = ({
   images,
@@ -76,23 +87,59 @@ const ImageUploader: React.FC<Props> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const modal = useRef<HTMLIonModalElement>(null);
   const [showToast] = useIonToast();
+  const [objectUrls, setObjectUrls] = useState<Map<File, string>>(new Map());
+  const [localImages, setLocalImages] = useState<ImageWithId[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 50,
+        delay: 25,
         tolerance: 5,
       },
     })
   );
 
+  // Generate unique IDs for images
+  const imagesWithIds = useMemo(() => {
+    return images.map((img, idx) => ({
+      id: img instanceof File ? `file-${idx}` : img.id || `uploaded-${idx}`,
+      image: img,
+    }));
+  }, [images]);
+
+  // Sync localImages with imagesWithIds when images change, preserving object URLs
+  useEffect(() => {
+    const newLocalImages = imagesWithIds.map((item) => {
+      if (item.image instanceof File && !objectUrls.has(item.image)) {
+        objectUrls.set(item.image, URL.createObjectURL(item.image));
+      }
+      return { ...item };
+    });
+    setLocalImages(newLocalImages);
+  }, [imagesWithIds, objectUrls]);
+
+  // Manage object URLs and cleanup only when File objects are removed
+  useEffect(() => {
+    const currentFiles = new Set(images.filter((img) => img instanceof File));
+    const urlsToRevoke = new Map(
+      [...objectUrls].filter(([file]) => !currentFiles.has(file))
+    );
+
+    urlsToRevoke.forEach((url) => URL.revokeObjectURL(url));
+    setObjectUrls((prev) => {
+      const newUrls = new Map(prev);
+      urlsToRevoke.forEach((_, file) => newUrls.delete(file));
+      return newUrls;
+    });
+  }, [images]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-      const oldIndex = images.findIndex((img, i) => i.toString() === active.id);
-      const newIndex = images.findIndex((img, i) => i.toString() === over?.id);
-      const sorted = arrayMove(images, oldIndex, newIndex);
-      setImages(sorted);
+      const oldIndex = localImages.findIndex((img) => img.id === active.id);
+      const newIndex = localImages.findIndex((img) => img.id === over?.id);
+      const sorted = arrayMove(localImages, oldIndex, newIndex);
+      setLocalImages(sorted);
     }
   };
 
@@ -114,18 +161,30 @@ const ImageUploader: React.FC<Props> = ({
       imgEl.classList.add("fade-out");
 
       setTimeout(() => {
-        const updated = [...images];
-        const removedImage = updated.splice(index, 1)[0];
+        const updated = [...localImages];
+        const removedImage = updated.splice(index, 1)[0].image;
 
-        // If the removed image is an already uploaded image, call the callback
         if (!(removedImage instanceof File) && onRemoveUploadedImage) {
           onRemoveUploadedImage(removedImage);
         }
-        console.log(updated);
 
-        setImages(updated);
+        setLocalImages(updated);
+        setImages(updated.map((item) => item.image));
+
+        if (removedImage instanceof File && objectUrls.has(removedImage)) {
+          URL.revokeObjectURL(objectUrls.get(removedImage)!);
+          setObjectUrls((prev) => {
+            const newUrls = new Map(prev);
+            newUrls.delete(removedImage);
+            return newUrls;
+          });
+        }
       }, 300);
     }
+  };
+
+  const handleModalDismiss = () => {
+    setImages(localImages.map((item) => item.image));
   };
 
   return (
@@ -142,6 +201,7 @@ const ImageUploader: React.FC<Props> = ({
       <IonRow className="ion-justify-content-center ion-margin-bottom">
         <IonCol size="auto">
           <IonButton
+            fill="clear"
             onClick={() => inputRef.current?.click()}
             className="ion-text-center"
           >
@@ -150,8 +210,15 @@ const ImageUploader: React.FC<Props> = ({
         </IonCol>
 
         <IonCol size="auto">
-          <IonButton id="open-modal" disabled={images.length === 0}>
-            Otevřít náhled ({images.length})
+          <IonButton
+            fill="outline"
+            id="open-modal"
+            disabled={localImages.length === 0}
+            style={{
+              fontSize: localImages.length >= 10 ? "0.8rem" : "",
+            }}
+          >
+            Otevřít náhled ({localImages.length})
           </IonButton>
         </IonCol>
       </IonRow>
@@ -160,6 +227,7 @@ const ImageUploader: React.FC<Props> = ({
         ref={modal}
         trigger="open-modal"
         className="image-uploader-modal"
+        onDidDismiss={handleModalDismiss}
       >
         <IonHeader>
           <IonToolbar>
@@ -177,31 +245,34 @@ const ImageUploader: React.FC<Props> = ({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={images.map((_, index) => index.toString())}
-              strategy={verticalListSortingStrategy}
+              items={localImages.map((img) => img.id)}
+              strategy={rectSortingStrategy}
             >
               <div className="image-preview-container">
-                {images.map((img, idx) => (
-                  <SortableImage key={idx} id={idx.toString()}>
-                    <div className="image-container" id={`img-${idx}`}>
-                      <IonImg
-                        src={
-                          img instanceof File
-                            ? URL.createObjectURL(img)
-                            : img.imageUrl
-                        }
-                        alt={img instanceof File ? img.name : img.altText}
-                        className="image-preview"
-                      />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="remove-button"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </SortableImage>
-                ))}
+                {localImages.map((item, idx) => {
+                  const img = item.image;
+                  return (
+                    <SortableImage key={item.id} id={item.id}>
+                      <div className="image-container" id={`img-${idx}`}>
+                        <IonImg
+                          src={
+                            img instanceof File
+                              ? objectUrls.get(img) || ""
+                              : img.imageUrl
+                          }
+                          alt={img instanceof File ? img.name : img.altText}
+                          className="image-preview"
+                        />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="remove-button"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </SortableImage>
+                  );
+                })}
               </div>
             </SortableContext>
           </DndContext>
