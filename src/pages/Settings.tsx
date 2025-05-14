@@ -35,7 +35,7 @@ import { useHistory } from "react-router";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
 const Settings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const history = useHistory();
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(false);
   const { get, set, ready } = useStorage();
@@ -490,6 +490,15 @@ const Settings: React.FC = () => {
           </IonItem>
         </IonList>
         <IonNote className="version-note">Ver. {__APP_VERSION__}</IonNote>
+        {role === "Admin" && (
+          <IonButton
+            routerLink="/admin"
+            className="ion-margin"
+            style={{ display: "flex" }}
+          >
+            Admin Panel
+          </IonButton>
+        )}
       </IonContent>
     </IonPage>
   );

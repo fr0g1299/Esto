@@ -2,7 +2,13 @@ import { useEffect, useState, ReactNode } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../firebase";
 import { AuthContext } from "./AuthContext";
-import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  serverTimestamp,
+  setDoc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { PushNotifications } from "@capacitor/push-notifications";
 
@@ -37,6 +43,7 @@ const savePushToken = async (uid: string) => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<"Admin" | "User" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,6 +53,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (firebaseUser) {
         const userRef = doc(db, "users", firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        const roleFromDB = userSnap.data()?.userRole;
+
+        if (roleFromDB === "Admin") {
+          setRole("Admin");
+        } else {
+          setRole("User");
+        }
+
         await updateDoc(userRef, {
           lastSeen: serverTimestamp(),
         });
@@ -60,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, role }}>
       {children}
     </AuthContext.Provider>
   );

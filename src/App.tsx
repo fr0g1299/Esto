@@ -72,6 +72,7 @@ import { useAuth } from "./hooks/useAuth";
 import { setNotificationPreference } from "./services/notificationsService";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import AdminDashboard from "./components/AdminDashboard";
 
 setupIonicReact();
 
@@ -166,18 +167,26 @@ const App: React.FC = () => {
         <IonReactRouter>
           <IonTabs>
             <IonRouterOutlet>
+              <Route exact path="/" render={() => <Redirect to="/home" />} />
               <Route exact path="/home" component={Home} />
               <Route exact path="/searchmap" component={SearchMap} />
               <Route exact path="/search" component={Search} />
               <Route exact path="/collections" component={Collection} />
               <Route exact path="/settings" component={Settings} />
-              <Route exact path="/details/:propertyId" component={PropertyDetails} />
+              <Route
+                exact
+                path="/details/:propertyId"
+                component={PropertyDetails}
+              />
               <Route exact path="/results" component={SearchResults} />
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
-              <Route exact path="/chat/:chatId" component={Chat} />
-              <Route exact path="/chats" component={Chats} />
-              <Route
+              <Route exact path="/not-found" component={NotFound} />
+              <Route component={NotFound} />
+
+              <PrivateRoute exact path="/chat/:chatId" component={Chat} />
+              <PrivateRoute exact path="/chats" component={Chats} />
+              <PrivateRoute
                 exact
                 path="/collection/folder/:folderId"
                 component={Folder}
@@ -192,11 +201,14 @@ const App: React.FC = () => {
                 path="/notifications"
                 component={Notifications}
               />
-              <Route exact path="/edit/:propertyId" component={EditProperty} />
+              <PrivateRoute
+                exact
+                path="/edit/:propertyId"
+                component={EditProperty}
+              />
               <PrivateRoute exact path="/create" component={Create} />
-              <Route exact path="/not-found" component={NotFound} />
-              <Route exact path="/" render={() => <Redirect to="/home" />} />
-              <Route component={NotFound} />
+
+              <PrivateRoute exact path="/admin" component={AdminDashboard} />
             </IonRouterOutlet>
 
             <IonTabBar slot="bottom">
