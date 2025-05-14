@@ -245,7 +245,7 @@ const Create: React.FC = () => {
 
       setLoading(false);
       showToast("Inzerát byl úspěšně vytvořen!", 1500);
-      setTimeout(() => history.push(`/details/${propertyId}`), 1500);
+      setTimeout(() => history.push(`/details/${propertyId}`), 750);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
@@ -395,7 +395,7 @@ const Create: React.FC = () => {
             color="primary"
             placeholder="Popis nemovitosti"
             value={description}
-            onIonInput={(e) => setDescription(e.detail.value!)}
+            onIonInput={(e) => setDescription(e.detail.value!.trim())}
             autoGrow
             spellcheck
             autoCorrect="on"

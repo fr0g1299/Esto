@@ -105,6 +105,7 @@ const EditProperty: React.FC = () => {
   const [description, setDescription] = useState("");
   const [kitchenEquipment, setKitchenEquipment] = useState<string[]>([]);
   const [heatingType, setHeatingType] = useState("");
+  const [availability, setAvailability] = useState(true);
 
   // State for image upload
   const [images, setImages] = useState<ImageType[]>([]);
@@ -243,6 +244,7 @@ const EditProperty: React.FC = () => {
         setKitchenEquipment(data.kitchenEquipment);
         setHeatingType(data.heatingType);
         setPostalCode(data.postalCode);
+        setAvailability(data.status === "Available");
         setImages(
           (data.images as UploadedImage[]).sort(
             (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
@@ -295,6 +297,7 @@ const EditProperty: React.FC = () => {
           garden,
           solarPanels,
           pool,
+          status: availability ? "Available" : "Sold",
         },
         {
           yearBuilt,
@@ -518,7 +521,7 @@ const EditProperty: React.FC = () => {
                 color="primary"
                 placeholder="Popis nemovitosti"
                 value={description}
-                onIonInput={(e) => setDescription(e.detail.value!)}
+                onIonInput={(e) => setDescription(e.detail.value!.trim())}
                 autoGrow
                 spellcheck
                 autoCorrect="on"
@@ -629,6 +632,19 @@ const EditProperty: React.FC = () => {
               onRemoveUploadedImage={handleRemoveUploadedImage}
             />
 
+            <IonList className="input-list ion-margin-top ion-margin-bottom">
+              <IonItem lines="none">
+                <IonCheckbox
+                  checked={availability}
+                  style={{ "--size": "20px" }}
+                  helperText="Zaškrtněte, pokud je nemovitost dostupná, odškrtněte, pokud je prodaná/zamluvená"
+                  onIonChange={(e) => setAvailability(e.detail.value)}
+                >
+                  <strong>Stav:</strong>
+                </IonCheckbox>
+              </IonItem>
+            </IonList>
+
             <IonButton
               id="save-alert"
               expand="block"
@@ -640,10 +656,6 @@ const EditProperty: React.FC = () => {
                 !type ||
                 !disposition
               }
-              onClick={() => {
-                console.log("title ", title);
-                showToast("Změny byly uloženy!", 1500);
-              }}
             >
               Uložit změny
             </IonButton>

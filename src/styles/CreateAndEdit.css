@@ -104,6 +104,10 @@
     text-align: center;
   }
 
+  ion-checkbox::part(helper-text) {
+    margin-right: 10px;
+  }
+
   .icon-align {
     margin-bottom: 1.5px;
   }
