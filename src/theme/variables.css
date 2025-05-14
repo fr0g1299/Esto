@@ -8,6 +8,7 @@
   --ion-color-primary-shade: #df4a28;
   --ion-color-primary-tint: #fd6542;
   --ion-text-color: #000000;
+  --ion-color-secondary: #16171a;
 
   --ion-text-color-step-50: #0d0d0d;
   --ion-text-color-step-100: #1a1a1a;
@@ -32,6 +33,7 @@
   --ion-item-background: #f3f3f3;
 
   --ion-custom-orange: #fff3e6;
+  --shadow: #00000040;
 
   --ion-safe-area-top: var(--safe-area-inset-top);
   padding-bottom: var(--safe-area-inset-bottom) !important;
@@ -43,7 +45,7 @@ body {
 }
 
 ion-content {
-  --padding-bottom: 50px !important;
+  --padding-bottom: 50px !important; /* Because of TabBar*/
 }
 
 ion-content::part(scroll)::-webkit-scrollbar {
@@ -52,6 +54,8 @@ ion-content::part(scroll)::-webkit-scrollbar {
 
 .ion-palette-dark {
   --ion-custom-orange: #413c37;
+  --shadow: #0000005e;
+  --ion-color-secondary: #ffffff;
 
   .leaflet-bar a {
     background-color: #4d4d4d;

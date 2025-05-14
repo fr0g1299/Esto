@@ -1,18 +1,4 @@
 .property-details-page {
-  .video-container {
-    margin-top: 1rem;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  h2 {
-    margin-top: 16px;
-    font-size: 24px;
-  }
-
-  ul {
-    padding-left: 20px;
-  }
   ion-toolbar {
     --background: transparent;
   }
@@ -23,7 +9,7 @@
 
   .swiper-container {
     position: absolute;
-    top: 0;
+    top: 0px;
     left: 0;
     width: 100%;
     height: 250px;
@@ -46,33 +32,116 @@
     z-index: 3;
     width: 100%;
     top: 235px !important;
-    padding: 5px 15px 100px 15px;
+    padding: 0 3px 100px 3px;
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
     background-color: var(--ion-background-color, #fff);
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
   }
 
-  ion-popover {
-    --width: auto;
-  }
-
   .boolean-icon {
-    font-size: 20px;
+    margin-right: 8px;
+    vertical-align: middle;
+    font-size: 25px;
   }
 
-  .boolean-label {
+  .bolder-content {
+    color: var(--ion-text-color-step-200);
+  }
+
+  .property-card {
+    margin-bottom: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+    overflow: hidden;
+  }
+
+  .title-card {
+    position: relative;
+    left: -3px;
+    margin: 0px;
+    padding: 0px 5px;
+    width: calc(100% + 6px);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    z-index: 2;
+  }
+
+  .property-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ion-text-color);
+  }
+
+  .property-status {
     display: flex;
     align-items: center;
+    justify-content: space-between;
   }
 
-  /* .toolbar-icon {
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    z-index: 6;
-    } */
+  .property-price {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ion-color-primary);
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--ion-text-color);
+  }
+
+  .section-subtitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ion-text-color);
+    margin-bottom: 8px;
+  }
+
+  .flex-align-center {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  ion-item::part(native) {
+    padding-right: 16px;
+    --inner-padding-end: 0px;
+  }
+
+  .icon {
+    margin-right: 8px;
+    color: var(--ion-color-primary);
+    font-size: 1.25rem;
+  }
+
+  .list-disc {
+    list-style-type: disc;
+    padding-left: 20px;
+  }
+
+  .kitchen-equipment {
+    margin-top: 16px;
+  }
+
+  .contact-button {
+    color: var(--ion-color-primary);
+    font-weight: 650;
+    width: 75%;
+    border: 2px solid #fd532d34;
+    padding: 8px 0;
+    border-radius: 8px;
+    margin: 10px auto;
+    text-decoration: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  ion-chip {
+    font-weight: 500;
+  }
 }

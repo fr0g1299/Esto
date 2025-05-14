@@ -10,11 +10,15 @@ import {
   IonButtons,
   IonBackButton,
   IonIcon,
-  IonPopover,
   IonText,
   IonList,
   IonItem,
   IonSkeletonText,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonChip,
 } from "@ionic/react";
 import { useParams } from "react-router";
 import { useEffect, useState, useRef } from "react";
@@ -27,22 +31,27 @@ import {
   increment,
   updateDoc,
   setDoc,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useHistory } from "react-router";
+import MiniMap from "../components/ui/MiniMap";
 
 import {
   heartOutline,
   heart,
   callOutline,
   mailOutline,
-  personOutline,
-  chatboxEllipsesOutline,
   checkmarkOutline,
-  pencil,
   notifications,
   notificationsOutline,
   shareOutline,
+  locationOutline,
+  homeOutline,
+  calendarOutline,
+  closeOutline,
+  eyeOutline,
+  createOutline,
 } from "ionicons/icons";
 
 import { EffectFade, Autoplay } from "swiper/modules";
@@ -63,9 +72,10 @@ import { useStorage } from "../hooks/useStorage";
 import { Preferences } from "@capacitor/preferences";
 import { Share } from "@capacitor/share";
 import { getOrCreateChat } from "../services/chatService";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 
 interface RouteParams {
-  id: string;
+  propertyId: string;
 }
 
 interface Property {
@@ -79,8 +89,8 @@ interface Property {
   disposition: string;
   imageUrl: string;
   geolocation: GeoPoint;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
   garage: boolean;
   elevator: boolean;
   gasConnection: boolean;
@@ -91,6 +101,7 @@ interface Property {
   garden: boolean;
   solarPanels: boolean;
   pool: boolean;
+  views: number;
 }
 
 interface PropertyDetails {
@@ -105,7 +116,6 @@ interface PropertyDetails {
   description: string;
   kitchenEquipment: string[];
   heatingType: string;
-  videoUrl: string;
 }
 
 interface PropertyImages {
@@ -145,7 +155,8 @@ const incrementViews = async (id: string) => {
 };
 
 const PropertyDetails: React.FC = () => {
-  const { id } = useParams<RouteParams>();
+  const { propertyId } = useParams<RouteParams>();
+  useTabBarScrollEffect();
   const history = useHistory();
   const { user } = useAuth();
   const { get, set, ready } = useStorage();
@@ -162,38 +173,82 @@ const PropertyDetails: React.FC = () => {
   const [viewerOpen, setViewerOpen] = useState(false);
 
   const swiperRef = useRef<SwiperClass | null>(null);
+  const [features, setFeatures] = useState<
+    { label: string; value: boolean | undefined }[]
+  >([]);
+  const [cardDetails, setCardDetails] = useState<
+    { label: string; value: boolean | undefined }[]
+  >([]);
 
   useEffect(() => {
     const fetchData = async () => {
       //TODO: clean this up into a service
-      const propertyDoc = await getDoc(doc(db, "properties", id));
+      const propertyDoc = await getDoc(doc(db, "properties", propertyId));
       if (!propertyDoc.exists()) {
         history.replace("/not-found");
       }
       const detailsDoc = await getDoc(
-        doc(db, "properties", id, "details", "data")
+        doc(db, "properties", propertyId, "details", "data")
       );
       const imageDocs = await getDocs(
-        collection(db, "properties", id, "images")
+        collection(db, "properties", propertyId, "images")
       );
       const userDoc = await getDoc(
         doc(db, "users", propertyDoc.data()?.ownerId)
       );
-      const isFav = await isPropertyFavorited(user?.uid ?? "", id);
+      if (propertyDoc.exists()) {
+        setProperty(propertyDoc.data() as Property);
+
+        setFeatures([
+          { label: "Garáž", value: propertyDoc.data().garage },
+          { label: "Výtah", value: propertyDoc.data().elevator },
+          {
+            label: "Plynové připojení",
+            value: propertyDoc.data().gasConnection,
+          },
+          {
+            label: "Třífázová elektřina",
+            value: propertyDoc.data().threePhaseElectricity,
+          },
+          { label: "Sklep", value: propertyDoc.data().basement },
+          { label: "Zařízený", value: propertyDoc.data().furnished },
+          { label: "Balkón", value: propertyDoc.data().balcony },
+          { label: "Zahrada", value: propertyDoc.data().garden },
+          { label: "Solární panely", value: propertyDoc.data().solarPanels },
+          { label: "Bazén", value: propertyDoc.data().pool },
+        ]);
+      }
+      if (detailsDoc.exists()) {
+        setDetails(detailsDoc.data() as PropertyDetails);
+
+        setCardDetails([
+          { label: "Počet pokojů", value: detailsDoc.data().rooms },
+          { label: "Koupelny", value: detailsDoc.data().bathroomCount },
+          { label: "Podlaží", value: detailsDoc.data().floors },
+          { label: "Rok výstavby", value: detailsDoc.data().yearBuilt },
+          { label: "Parkovací místa", value: detailsDoc.data().parkingSpots },
+          { label: "Vytápění", value: detailsDoc.data().heatingType },
+        ]);
+      }
+      if (userDoc.exists()) setUserContact(userDoc.data() as UserContact);
+      setImages(
+        imageDocs.docs
+          .map((doc) => doc.data() as PropertyImages)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+      );
+      incrementViews(propertyId);
+
+      if (!user) return;
+
+      const isFav = await isPropertyFavorited(user.uid, propertyId);
       setIsFavorite(isFav);
       console.log(user?.uid);
-
-      if (propertyDoc.exists()) setProperty(propertyDoc.data() as Property);
-      if (detailsDoc.exists()) setDetails(detailsDoc.data() as PropertyDetails);
-      if (userDoc.exists()) setUserContact(userDoc.data() as UserContact);
-      setImages(imageDocs.docs.map((doc) => doc.data() as PropertyImages));
-      incrementViews(id);
     };
 
     const checkNotificationPref = async () => {
       if (!user) return;
       const prefDoc = await getDoc(
-        doc(db, "users", user.uid, "notificationsPreferences", id)
+        doc(db, "users", user.uid, "notificationsPreferences", propertyId)
       );
 
       if (prefDoc.exists() && prefDoc.data().notifyOnPriceDrop) {
@@ -206,27 +261,29 @@ const PropertyDetails: React.FC = () => {
       setPushEnabled(value === "true");
     };
 
-    console.log("Fetching data for property ID:", id);
-    console.log("Property ID:", id);
+    console.log("Fetching data for property ID:", propertyId);
+    console.log("Property ID:", propertyId);
 
     fetchData();
     notificationsEnabled();
     checkNotificationPref();
-  }, [id, user, history]);
+  }, [propertyId, user, history]);
 
   useEffect(() => {
     if (!property) return;
     const saveToViewedHistory = async () => {
       const { title, price, imageUrl } = property;
-      const minimalProperty = { id, title, price, imageUrl };
-      console.log("id:", id);
+      const minimalProperty = { propertyId, title, price, imageUrl };
+      console.log("id:", propertyId);
 
       const viewedHistory: (typeof minimalProperty)[] =
         (await get("viewedHistory")) || [];
 
       const updatedHistory = [
         minimalProperty,
-        ...viewedHistory.filter((p) => p.id !== minimalProperty.id),
+        ...viewedHistory.filter(
+          (p) => p.propertyId !== minimalProperty.propertyId
+        ),
       ];
 
       if (updatedHistory.length > 10) {
@@ -239,7 +296,7 @@ const PropertyDetails: React.FC = () => {
     };
 
     saveToViewedHistory();
-  }, [id, property, ready, set, get]);
+  }, [propertyId, property, ready, set, get]);
 
   useEffect(() => {
     if (!viewerOpen) {
@@ -250,12 +307,12 @@ const PropertyDetails: React.FC = () => {
 
   const handleClose = async () => {
     setShowFavoriteModal(false);
-    const updated = await isPropertyFavorited(user?.uid ?? "", id);
+    const updated = await isPropertyFavorited(user?.uid ?? "", propertyId);
     setIsFavorite(updated);
   };
 
   const handleNotification = async () => {
-    if (!user?.uid || !id) return;
+    if (!user?.uid || !propertyId) return;
 
     try {
       const notificationPreference = {
@@ -264,7 +321,7 @@ const PropertyDetails: React.FC = () => {
       };
 
       await setDoc(
-        doc(db, "users", user.uid, "notificationsPreferences", id),
+        doc(db, "users", user.uid, "notificationsPreferences", propertyId),
         notificationPreference
       );
 
@@ -387,31 +444,37 @@ const PropertyDetails: React.FC = () => {
       <IonHeader translucent>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonBackButton defaultHref="/home"></IonBackButton>
+            <IonBackButton
+              color="secondary"
+              defaultHref="/home"
+            ></IonBackButton>
           </IonButtons>
-          <IonButtons slot="start">
+          <IonButtons slot="start" style={{ paddingLeft: "5px" }}>
             <IonIcon
               icon={shareOutline}
+              color="secondary"
               slot="icon-only"
               className="toolbar-icon"
               onClick={handleShare}
             />
           </IonButtons>
           {user?.uid === property.ownerId ? (
-            <IonButtons slot="end">
+            <IonButtons slot="end" style={{ paddingRight: "15px" }}>
               <IonIcon
-                icon={pencil}
+                icon={createOutline}
+                color="secondary"
                 slot="icon-only"
                 className="toolbar-icon"
-                onClick={() => history.push(`/edit/${id}`)}
+                onClick={() => history.push(`/edit/${propertyId}`)}
               />
             </IonButtons>
           ) : pushEnabled ? (
-            <IonButtons slot="end">
+            <IonButtons slot="end" style={{ paddingRight: "15px" }}>
               <IonIcon
                 icon={
                   notificationsEnabled ? notifications : notificationsOutline
                 }
+                color="secondary"
                 slot="icon-only"
                 className="toolbar-icon"
                 onClick={handleNotification}
@@ -419,7 +482,7 @@ const PropertyDetails: React.FC = () => {
             </IonButtons>
           ) : null}
           {user && (
-            <IonButtons slot="end">
+            <IonButtons slot="end" style={{ paddingRight: "15px" }}>
               <IonIcon
                 icon={isFavorite ? heart : heartOutline}
                 slot="icon-only"
@@ -432,7 +495,7 @@ const PropertyDetails: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen className=" property-details-content">
+      <IonContent fullscreen scrollEvents>
         <div className="swiper-container">
           <Swiper
             {...slideOpts}
@@ -463,147 +526,227 @@ const PropertyDetails: React.FC = () => {
         <FavoriteSelectorModal
           isOpen={showFavoriteModal}
           onClose={handleClose}
-          propertyId={id}
+          propertyId={propertyId}
           title={property.title}
           price={property.price}
           disposition={property.disposition}
           imageUrl={property.imageUrl}
         />
         <div className="property-body">
-          {/* Main Info */}
-          <h1>{property.title}</h1>
-          <IonIcon
-            icon={personOutline}
-            id="click-trigger"
-            size={"large"}
-          ></IonIcon>
-          {user?.uid != property.ownerId && (
-            <IonIcon
-              icon={chatboxEllipsesOutline}
-              size={"large"}
-              onClick={async () => {
-                const chatId = await getOrCreateChat(
-                  user?.uid ?? "",
-                  property.ownerId,
-                  id,
-                  property.title,
-                  property.imageUrl
-                );
-                history.push({
-                  pathname: `/chat/${chatId}`,
-                  state: { userContact, propertyId: id },
-                });
-              }}
-            ></IonIcon>
-          )}
-          <IonPopover trigger="click-trigger">
-            <IonList>
-              <IonItem>
-                {userContact?.firstName} {userContact?.lastName}
-              </IonItem>
-              <IonItem lines="none">
-                <IonIcon icon={callOutline} slot="start" />
-                <IonText>{userContact?.phone}</IonText>
-              </IonItem>
-              <IonItem lines="none">
-                <IonIcon icon={mailOutline} slot="start" />
-                <IonText>{userContact?.email}</IonText>
-              </IonItem>
-            </IonList>
-          </IonPopover>
-          <h2>{property.price.toLocaleString("cs")} Kč</h2>
-          <p>
-            {property.type} · {property.disposition} · {property.city}
-          </p>
-          <p>{property.address}</p>
-          <p>{details.description}</p>
+          {/* Price and Status */}
+          <IonCard className="property-card title-card">
+            <IonCardHeader>
+              <IonCardTitle className="property-title">
+                {property.title}
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent className="property-status">
+              <IonChip
+                color={property.status === "Available" ? "success" : "danger"}
+              >
+                <IonLabel>
+                  {property.status === "Available" ? "Dostupné" : "Nedostupné"}
+                </IonLabel>
+              </IonChip>
+              <IonText className="property-price">
+                {property.price.toLocaleString("cs")} Kč
+              </IonText>
+            </IonCardContent>
+          </IonCard>
 
-          {/* Property Details */}
-          <IonGrid>
-            <IonRow>
-              <IonCol>
-                <IonLabel>Plocha pozemku: {details.propertySize} m²</IonLabel>
-              </IonCol>
-              <IonCol>
-                <IonLabel>Velikost zahrady: {details.gardenSize} m²</IonLabel>
-              </IonCol>
-              <IonCol>
-                <IonLabel>Patra: {details.floors}</IonLabel>
-              </IonCol>
-              <IonCol>
-                <IonLabel>Koupelny: {details.bathroomCount}</IonLabel>
-              </IonCol>
-              <IonCol>
-                <IonLabel>Pokoje: {details.rooms}</IonLabel>
-              </IonCol>
-              <IonCol>
-                <IonLabel>Parkování: {details.parkingSpots}</IonLabel>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
+          {/* Property Overview */}
+          <IonCard className="property-card">
+            <IonCardHeader>
+              <IonCardTitle className="section-title">
+                Přehled nemovitosti
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonGrid>
+                <IonRow className="bolder-content">
+                  <IonCol size="6" style={{ display: "flex" }}>
+                    <strong>Typ:</strong>&nbsp;{property.type}&nbsp;
+                    <IonIcon icon={homeOutline} className="icon" />
+                  </IonCol>
+                  <IonCol size="6">
+                    <strong>Dispozice:</strong> {property.disposition}
+                  </IonCol>
+                  <IonCol size="6">
+                    <strong>Velikost:</strong> {details.propertySize} m²
+                  </IonCol>
+                  <IonCol size="6">
+                    <strong>Zahrada:</strong> {details.gardenSize} m²
+                  </IonCol>
+                  {cardDetails.map((item, index) => (
+                    <IonCol
+                      key={index}
+                      size="6"
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
+                      <strong>{item.label}:</strong>&nbsp;{item.value}
+                    </IonCol>
+                  ))}
+                </IonRow>
+              </IonGrid>
+            </IonCardContent>
+          </IonCard>
 
-          {/* Boolean Features */}
-          <IonGrid>
-            <IonRow>
-              {[
-                ["Garáž", property.garage],
-                ["Výtah", property.elevator],
-                ["Plynové připojení", property.gasConnection],
-                ["Třífázová elektřina", property.threePhaseElectricity],
-                ["Sklep", property.basement],
-                ["Zařízený", property.furnished],
-                ["Balkon", property.balcony],
-                ["Zahrada", property.garden],
-                ["Solární panely", property.solarPanels],
-                ["Bazén", property.pool],
-              ]
-                .filter(([, val]) => val)
-                .map(([label], i) => (
-                  <IonCol size="6" key={i}>
-                    <IonLabel className="boolean-label">
+          {/* Features */}
+          <IonCard className="property-card">
+            <IonCardHeader>
+              <IonCardTitle className="section-title">Vybavení</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonGrid>
+                <IonRow>
+                  {features.map((feature, index) => (
+                    <IonCol size="6" key={index} className="bolder-content">
                       <IonIcon
-                        icon={checkmarkOutline}
-                        slot="start"
+                        icon={feature.value ? checkmarkOutline : closeOutline}
+                        color={feature.value ? "primary" : ""}
                         className="boolean-icon"
                       />
-                      {label}
-                    </IonLabel>
-                  </IonCol>
-                ))}
-            </IonRow>
-          </IonGrid>
+                      {feature.label}
+                    </IonCol>
+                  ))}
+                </IonRow>
+              </IonGrid>
+              <div className="kitchen-equipment">
+                <h3 className="section-subtitle">Kuchyňské vybavení:</h3>
+                <ul className="list-disc bolder-content">
+                  {details.kitchenEquipment.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </IonCardContent>
+          </IonCard>
 
-          {/* Kitchen Equipment */}
-          <h3>Vybavení kuchyně</h3>
-          <ul>
-            {details.kitchenEquipment.map((item: string, idx: number) => (
-              <li key={idx}>{item}</li>
-            ))}
-          </ul>
+          {/* Description */}
+          <IonCard className="property-card">
+            <IonCardHeader>
+              <IonCardTitle className="section-title">Popis</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonText
+                style={{
+                  whiteSpace: "pre-line",
+                  color: "var(--ion-text-color-step-100)",
+                }}
+              >
+                {details.description}
+              </IonText>
+            </IonCardContent>
+          </IonCard>
 
-          {/* Extra */}
-          <p>
-            <strong>Vytápění:</strong> {details.heatingType}
-          </p>
-          <p>
-            <strong>Rok výstavby:</strong> {details.yearBuilt}
-          </p>
-          <p>
-            <strong>PSČ:</strong> {details.postalCode}
-          </p>
+          {/* Dates */}
+          <IonCard className="property-card">
+            <IonCardHeader>
+              <IonCardTitle className="section-title">
+                Další informace
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <div className="flex-align-center bolder-content">
+                <IonIcon icon={calendarOutline} className="icon" />
+                <span>
+                  Vytvořeno:{" "}
+                  {new Date(property.createdAt?.toDate?.()).toLocaleString(
+                    "cs"
+                  )}
+                </span>
+              </div>
+              <div className="flex-align-center bolder-content">
+                <IonIcon icon={calendarOutline} className="icon" />
+                <span>
+                  Aktualizováno:{" "}
+                  {new Date(property.updatedAt?.toDate?.()).toLocaleString(
+                    "cs"
+                  )}
+                </span>
+              </div>
+              <div className="flex-align-center bolder-content">
+                <IonIcon icon={eyeOutline} className="icon" />
+                <span>Zobrazení: {property.views?.toLocaleString("cs")}</span>
+              </div>
+            </IonCardContent>
+          </IonCard>
 
-          {/* {details.videoUrl && (
-          <div className="video-container">
-          <iframe
-          width="100%"
-          height="200"
-          src={details.videoUrl}
-          title="Video nemovitosti"
-          frameBorder="0"
-          allowFullScreen
-          />
-          </div>
-          )} */}
+          {/* Contact */}
+          <IonCard className="property-card">
+            <IonCardHeader>
+              <IonCardTitle className="section-title">Kontakt</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonList className="ion-no-padding">
+                <IonItem lines="inset" style={{ fontWeight: "500" }}>
+                  {userContact?.firstName} {userContact?.lastName}
+                </IonItem>
+                <IonItem lines="inset">
+                  <IonIcon icon={callOutline} slot="start" color="primary" />
+                  <IonText>{userContact?.phone}</IonText>
+                </IonItem>
+                <IonItem
+                  button
+                  lines="none"
+                  onClick={() =>
+                    (window.location.href = `mailto:${userContact?.email}`)
+                  }
+                >
+                  <IonIcon icon={mailOutline} slot="start" color="primary" />
+                  <IonText>{userContact?.email}</IonText>
+                </IonItem>
+              </IonList>
+              {user?.uid != property.ownerId && (
+                <a
+                  className="contact-button"
+                  onClick={async () => {
+                    const chatId = await getOrCreateChat(
+                      user?.uid ?? "",
+                      property.ownerId,
+                      propertyId,
+                      property.title,
+                      property.imageUrl
+                    );
+                    history.push({
+                      pathname: `/chat/${chatId}`,
+                      state: { userContact, propertyId: propertyId },
+                    });
+                  }}
+                >
+                  Kontaktovat majitele <br />
+                  prostřednictvím real-time chatu
+                </a>
+              )}
+            </IonCardContent>
+          </IonCard>
+
+          {/* Location Details */}
+          <IonCard className="property-card">
+            <IonCardHeader>
+              <IonCardTitle className="section-title">Lokalita</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <div className="flex-align-center">
+                <IonIcon icon={locationOutline} className="icon" />
+                <div className="address-block">
+                  <span className="bolder-content">
+                    <strong>{property.address}</strong>
+                  </span>
+                  <p>
+                    {property.city}, {details.postalCode}
+                  </p>
+                </div>
+              </div>
+
+              <MiniMap
+                position={[
+                  property.geolocation.latitude,
+                  property.geolocation.longitude,
+                ]}
+              />
+            </IonCardContent>
+          </IonCard>
         </div>
       </IonContent>
     </IonPage>

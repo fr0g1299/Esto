@@ -34,6 +34,10 @@ function FormInput<T extends string | number>({
       inputValue = filter(String(inputValue));
     }
 
+    if (typeof inputValue === "string") {
+      inputValue = inputValue.trim();
+    }
+
     onChange(type === "number" ? (Number(inputValue) as T) : (inputValue as T));
 
     const inputCmp = ionInputEl.current;
