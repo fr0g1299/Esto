@@ -14,9 +14,12 @@ import {
   useIonToast,
   IonCheckbox,
   IonNote,
+  IonList,
+  IonItemDivider,
+  useIonViewDidEnter,
 } from "@ionic/react";
 import { closeOutline, add } from "ionicons/icons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
   addPropertyToFolder,
@@ -55,23 +58,33 @@ const FavoriteSelectorModal: React.FC<Props> = ({
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
   const [initialFolders, setInitialFolders] = useState<string[]>([]);
 
+  const fetchFolders = useCallback(async () => {
+    if (!user) return;
+
+    const all = await getFavoriteFolders(user.uid);
+    const alreadySaved = await getFoldersContainingProperty(
+      user.uid,
+      propertyId
+    );
+    setFolders(all);
+    setSelectedFolders(alreadySaved);
+    setInitialFolders(alreadySaved); //TODO: this fires on mount of propertydetails page
+    console.log(all, alreadySaved);
+  }, [user, propertyId]);
+
   useEffect(() => {
     if (!user) return;
-    const fetchFolders = async () => {
-      const all = await getFavoriteFolders(user.uid);
-      const alreadySaved = await getFoldersContainingProperty(
-        user.uid,
-        propertyId
-      );
-      setFolders(all);
-      setSelectedFolders(alreadySaved);
-      setInitialFolders(alreadySaved); //TODO: this fires on mount of propertydetails page
-      console.log(all, alreadySaved);
-    };
 
     getFavoriteFolders(user.uid).then(setFolders);
     fetchFolders();
-  }, [user, propertyId]);
+  }, [user, propertyId, fetchFolders]);
+
+  useIonViewDidEnter(() => {
+    if (!user) return;
+
+    getFavoriteFolders(user.uid).then(setFolders);
+    fetchFolders();
+  });
 
   const handleEditToFavorites = async () => {
     if (!user) return;
@@ -96,6 +109,29 @@ const FavoriteSelectorModal: React.FC<Props> = ({
       );
 
     await Promise.all([...addPromises, ...removePromises]);
+
+    setFolders((prev) =>
+      prev.map((folder) => {
+        if (
+          selectedFolders.includes(folder.id) &&
+          !initialFolders.includes(folder.id)
+        ) {
+          return {
+            ...folder,
+            propertyCount: folder.propertyCount ? folder.propertyCount + 1 : 1,
+          };
+        } else if (
+          !selectedFolders.includes(folder.id) &&
+          initialFolders.includes(folder.id)
+        ) {
+          return {
+            ...folder,
+            propertyCount: folder.propertyCount ? folder.propertyCount - 1 : 0,
+          };
+        }
+        return folder;
+      })
+    );
 
     showToast("Oblíbené položky byly aktualizovány", 2000);
     onClose();
@@ -141,47 +177,56 @@ const FavoriteSelectorModal: React.FC<Props> = ({
       </IonHeader>
       <IonContent className="ion-padding">
         <IonLabel>Vyberte složku:</IonLabel>
-        {folders.map((folder) => (
-          <IonItem key={folder.id}>
-            <IonCheckbox
-              slot="start"
-              checked={selectedFolders.includes(folder.id)}
-              onIonChange={(e) => {
-                if (e.detail.checked) {
-                  setSelectedFolders((prev) => [...prev, folder.id]);
-                } else {
-                  setSelectedFolders((prev) =>
-                    prev.filter((id) => id !== folder.id)
-                  );
-                }
-                console.log(initialFolders);
-                console.log(selectedFolders);
-              }}
-            />
-            <IonLabel>{folder.title}</IonLabel>
-            <IonNote slot="end">{folder.propertyCount ?? 0}</IonNote>
-          </IonItem>
-        ))}
+        <IonList lines="none" className="ion-margin-top input-list">
+          {folders.map((folder) => (
+            <IonItem key={folder.id} lines="none">
+              <IonCheckbox
+                slot="start"
+                checked={selectedFolders.includes(folder.id)}
+                onIonChange={(e) => {
+                  if (e.detail.checked) {
+                    setSelectedFolders((prev) => [...prev, folder.id]);
+                  } else {
+                    setSelectedFolders((prev) =>
+                      prev.filter((id) => id !== folder.id)
+                    );
+                  }
+                  console.log(initialFolders);
+                  console.log(selectedFolders);
+                }}
+              />
+              <IonLabel>{folder.title}</IonLabel>
+              <IonNote slot="end">{folder.propertyCount ?? 0}</IonNote>
+            </IonItem>
+          ))}
+        </IonList>
+        <IonItemDivider></IonItemDivider>
 
-        <IonItem className="new-folder-item">
-          <IonInput
-            placeholder="Název nové složky"
-            value={newFolderTitle}
-            onIonInput={(e) => setNewFolderTitle(e.detail.value!.trim())}
-          />
-          <IonIcon
-            icon={add}
-            color="primary"
-            size="large"
-            slot="end"
-            onClick={handleCreateFolder}
-          />
-        </IonItem>
+        <IonList
+          lines="none"
+          className="input-list ion-margin-top ion-margin-bottom"
+        >
+          <IonItem lines="none" className="new-folder-item">
+            <IonInput
+              placeholder="Název nové složky"
+              value={newFolderTitle}
+              onIonInput={(e) => setNewFolderTitle(e.detail.value!.trim())}
+            />
+            <IonIcon
+              icon={add}
+              color="primary"
+              size="large"
+              slot="end"
+              onClick={handleCreateFolder}
+            />
+          </IonItem>
+        </IonList>
 
         <IonLabel>Poznámka (volitelné):</IonLabel>
         <IonTextarea
           placeholder="Přidat poznámku k inzerátu..."
           value={note}
+          autoGrow
           onIonInput={(e) => setNote(e.detail.value!)}
         />
 

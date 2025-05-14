@@ -1,12 +1,9 @@
 .image-viewer-modal {
+  --background: rgba(0, 0, 0, 0.85) !important;
   .swiper-zoom-container img {
     width: 100%;
     height: auto;
     object-fit: contain;
-  }
-
-  .image-viewer-modal {
-    --background: rgba(0, 0, 0, 0.85) !important;
   }
 
   .zoom-content {
