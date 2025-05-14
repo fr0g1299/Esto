@@ -1,4 +1,5 @@
 .chat-page {
+  padding-bottom: var(--safe-area-inset-bottom) !important;
   .chat-content {
     --padding-top: 0;
     --padding-bottom: 0;

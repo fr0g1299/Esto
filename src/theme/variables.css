@@ -36,7 +36,6 @@
   --shadow: #00000040;
 
   --ion-safe-area-top: var(--safe-area-inset-top);
-  padding-bottom: var(--safe-area-inset-bottom) !important;
 }
 
 body {

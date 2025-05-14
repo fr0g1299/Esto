@@ -697,7 +697,7 @@ const PropertyDetails: React.FC = () => {
                   <IonText>{userContact?.email}</IonText>
                 </IonItem>
               </IonList>
-              {user?.uid != property.ownerId && (
+              {user && user?.uid !== property.ownerId && (
                 <a
                   className="contact-button"
                   onClick={async () => {
