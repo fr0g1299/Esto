@@ -74,6 +74,7 @@ import { SafeArea } from "capacitor-plugin-safe-area";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import AdminDashboard from "./components/AdminDashboard";
 import { Capacitor } from "@capacitor/core";
+import OfflineDetails from "./pages/Offline";
 
 setupIonicReact();
 
@@ -191,6 +192,11 @@ const App: React.FC = () => {
               <Route exact path="/login" component={Login} />
               <Route exact path="/register" component={Register} />
               <Route exact path="/not-found" component={NotFound} />
+              <Route
+                exact
+                path="/offline/:propertyId"
+                component={OfflineDetails}
+              />
               <Route component={NotFound} />
 
               <PrivateRoute exact path="/chat/:chatId" component={Chat} />

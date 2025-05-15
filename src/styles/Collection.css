@@ -126,4 +126,9 @@
     padding-left: 10px;
     border-left: 2px solid #aaa;
   }
+
+  .center-text {
+    text-align: center;
+    font-weight: 450;
+  }
 }

@@ -48,6 +48,27 @@ interface FilterProps {
   criteria: string;
 }
 
+interface OfflineProperty {
+  propertyId: string;
+  title: string;
+  price: number;
+  city: string;
+}
+
+interface PropertyDetails {
+  yearBuilt: number;
+  floors: number;
+  bathroomCount: number;
+  gardenSize: number;
+  propertySize: number;
+  parkingSpots: number;
+  rooms: number;
+  postalCode: string;
+  description: string;
+  kitchenEquipment: string[];
+  heatingType: string;
+}
+
 const extractReadableFilters = (query: string): string[] => {
   const params = new URLSearchParams(query);
   const result: string[] = [];
@@ -114,7 +135,10 @@ const displayNames: Record<string, string> = {
 
 const Collection: React.FC = () => {
   const { user } = useAuth();
-  const { get, ready } = useStorage();
+  const { set, get, ready } = useStorage();
+  const [offlineProperties, setOfflineProperties] = useState<OfflineProperty[]>(
+    []
+  );
   const [viewedHistory, setViewedHistory] = useState<HistoryProps[]>([]);
   const [favoriteFolders, setFavoriteFolders] = useState<FolderProps[]>([]);
   const [accordionKey, setAccordionKey] = useState(0);
@@ -123,6 +147,7 @@ const Collection: React.FC = () => {
     viewedHistory: true,
     favoriteFolders: true,
     savedFilters: true,
+    offlineProperties: true,
   });
 
   const [showAlert, setShowAlert] = useState(false);
@@ -131,6 +156,7 @@ const Collection: React.FC = () => {
   const [folderExpanded, setFolderExpanded] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [offlineExpanded, setOfflineExpanded] = useState(false);
   const slidingRef = useRef<HTMLIonItemSlidingElement | null>(null);
 
   useIonViewDidLeave(() => {
@@ -194,6 +220,39 @@ const Collection: React.FC = () => {
       } finally {
         setLoadingLevels((prev) => ({ ...prev, savedFilters: false }));
       }
+    }
+  };
+
+  const handleOfflineProperties = async () => {
+    if (!ready) return;
+    await hapticsLight();
+    const newValue = !offlineExpanded;
+    setOfflineExpanded(newValue);
+    setLoadingLevels((prev) => ({ ...prev, offlineProperties: true }));
+
+    if (!offlineExpanded) {
+      const offlineData = await get("properties");
+      if (offlineData) setOfflineProperties(offlineData);
+      setLoadingLevels((prev) => ({ ...prev, offlineProperties: false }));
+    }
+  };
+
+  const handleRemoveOffline = async (propertyId: string) => {
+    await hapticsHeavy();
+
+    try {
+      const updatedProperties = offlineProperties.filter(
+        (property) => property.propertyId !== propertyId
+      );
+      setOfflineProperties(updatedProperties);
+      await set("properties", updatedProperties);
+
+      const detailsMap: Record<string, PropertyDetails> =
+        (await get("detailsMap")) || {};
+      delete detailsMap[propertyId];
+      await set("detailsMap", detailsMap);
+    } catch (error) {
+      console.error("Error removing offline property:", error);
     }
   };
 
@@ -274,6 +333,72 @@ const Collection: React.FC = () => {
             </IonList>
           </IonAccordion>
 
+          <IonAccordion value="offline" onClick={handleOfflineProperties}>
+            <IonItem slot="header">
+              <IonLabel>Uložené nemovitosti</IonLabel>
+            </IonItem>
+            <IonList slot="content">
+              {loadingLevels.offlineProperties ? (
+                [...Array(1)].map(
+                  (
+                    _,
+                    index //Array for future updates
+                  ) => (
+                    <IonItem key={index} className="property-item" lines="none">
+                      <IonLabel className="property-label">
+                        <h2>
+                          <IonSkeletonText animated style={{ width: "80%" }} />
+                        </h2>
+                        <p>
+                          <IonSkeletonText animated style={{ width: "60%" }} />
+                        </p>
+                      </IonLabel>
+                    </IonItem>
+                  )
+                )
+              ) : !offlineProperties || offlineProperties.length === 0 ? (
+                <IonItem lines="none" className="property-item">
+                  <IonLabel className="property-label">
+                    Nemáte žádnou historii zobrazení.
+                  </IonLabel>
+                </IonItem>
+              ) : (
+                <>
+                  {offlineProperties.map((property) => (
+                    <IonItemSliding
+                      ref={(el) => {
+                        if (property.propertyId === activeFilterId) {
+                          slidingRef.current = el;
+                        }
+                      }}
+                    >
+                      <IonItemOptions
+                        side="end"
+                        onIonSwipe={() => {
+                          setActiveFilterId(property.propertyId);
+                          setShowAlert(true);
+                        }}
+                      >
+                        <IonItemOption expandable>Odstranit</IonItemOption>
+                      </IonItemOptions>
+                      <IonItem
+                        key={property.propertyId}
+                        routerLink={`/offline/${property.propertyId}`}
+                        className="property-item"
+                        lines="none"
+                      >
+                        <IonLabel className="property-label">
+                          <h2>{property.title}</h2>
+                          <p>{property.price.toLocaleString()} $</p>
+                        </IonLabel>
+                      </IonItem>
+                    </IonItemSliding>
+                  ))}
+                </>
+              )}
+            </IonList>
+          </IonAccordion>
+
           <IonAccordion
             value="savedProperties"
             disabled={!user}
@@ -284,7 +409,7 @@ const Collection: React.FC = () => {
             </IonItem>
             <IonList slot="content">
               {loadingLevels.favoriteFolders ? (
-                [...Array(3)].map((_, index) => (
+                [...Array(2)].map((_, index) => (
                   <IonItem key={index} className="folder-item" lines="none">
                     <IonLabel className="property-label">
                       <h2>
@@ -328,20 +453,25 @@ const Collection: React.FC = () => {
             </IonItem>
             <IonList slot="content">
               {loadingLevels.savedFilters ? (
-                [...Array(3)].map((_, index) => (
-                  <div key={index}>
-                    <IonItem className="filter-item" lines="none">
-                      <IonLabel className="filter-label">
-                        <IonSkeletonText animated style={{ width: "60%" }} />
-                      </IonLabel>
-                    </IonItem>
-                    <IonItem className="filter-note-item" lines="none">
-                      <IonNote className="filter-criteria">
-                        <IonSkeletonText animated style={{ width: "80%" }} />
-                      </IonNote>
-                    </IonItem>
-                  </div>
-                ))
+                [...Array(1)].map(
+                  (
+                    _,
+                    index //Array for future updates
+                  ) => (
+                    <div key={index}>
+                      <IonItem className="filter-item" lines="none">
+                        <IonLabel className="filter-label">
+                          <IonSkeletonText animated style={{ width: "60%" }} />
+                        </IonLabel>
+                      </IonItem>
+                      <IonItem className="filter-note-item" lines="none">
+                        <IonNote className="filter-criteria">
+                          <IonSkeletonText animated style={{ width: "80%" }} />
+                        </IonNote>
+                      </IonItem>
+                    </div>
+                  )
+                )
               ) : !savedFilters || savedFilters.length === 0 ? (
                 <IonItem lines="none" className="property-item">
                   <IonLabel className="property-label">
@@ -360,7 +490,7 @@ const Collection: React.FC = () => {
                         }}
                       >
                         <IonItemOptions
-                          side="start"
+                          side="end"
                           onIonSwipe={() => {
                             setActiveFilterId(filter.id);
                             setShowAlert(true);
@@ -408,11 +538,8 @@ const Collection: React.FC = () => {
           </IonAccordion>
         </IonAccordionGroup>
         {!user && (
-          <IonText
-            color="danger"
-            className="ion-padding ion-align-items-start ion-justify-content-between ion-padding-horizontal"
-          >
-            <p className="ion-align-items-start ion-justify-content-between ion-padding-horizontal">
+          <IonText color="medium" className="center-text">
+            <p>
               Pro zobrazení oblíbených inzerátů nebo uložených filtrů se musíte
               přihlásit.
             </p>
@@ -436,6 +563,28 @@ const Collection: React.FC = () => {
               role: "confirm",
               handler: () => {
                 handleRemoveFilter(activeFilterId);
+              },
+            },
+          ]}
+        ></IonAlert>
+
+        <IonAlert
+          header="Opravdu chcete odstranit tuto uloženou nemovitost?"
+          isOpen={showAlert}
+          onDidDismiss={() => setShowAlert(false)}
+          buttons={[
+            {
+              text: "Ne",
+              role: "cancel",
+              handler: () => {
+                slidingRef.current?.close();
+              },
+            },
+            {
+              text: "Ano",
+              role: "confirm",
+              handler: () => {
+                handleRemoveOffline(activeFilterId);
               },
             },
           ]}

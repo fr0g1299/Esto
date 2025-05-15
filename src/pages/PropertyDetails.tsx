@@ -19,6 +19,7 @@ import {
   IonCardTitle,
   IonCardContent,
   IonChip,
+  useIonToast,
 } from "@ionic/react";
 import { useParams } from "react-router";
 import { useEffect, useState, useRef } from "react";
@@ -52,6 +53,7 @@ import {
   closeOutline,
   eyeOutline,
   createOutline,
+  cloudDownloadOutline,
 } from "ionicons/icons";
 
 import { EffectFade, Autoplay } from "swiper/modules";
@@ -80,6 +82,7 @@ interface RouteParams {
 }
 
 interface Property {
+  propertyId: string;
   ownerId: string;
   title: string;
   price: number;
@@ -158,11 +161,13 @@ const incrementViews = async (id: string) => {
 const PropertyDetails: React.FC = () => {
   const { propertyId } = useParams<RouteParams>();
   useTabBarScrollEffect();
+  const [showToast] = useIonToast();
   const history = useHistory();
   const { user } = useAuth();
   const { get, set, ready } = useStorage();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isSavedOffline, setIsSavedOffline] = useState(false);
 
   const [property, setProperty] = useState<Property>();
   const [details, setDetails] = useState<PropertyDetails>();
@@ -198,7 +203,7 @@ const PropertyDetails: React.FC = () => {
         doc(db, "users", propertyDoc.data()?.ownerId)
       );
       if (propertyDoc.exists()) {
-        setProperty(propertyDoc.data() as Property);
+        setProperty({ ...(propertyDoc.data() as Property), propertyId });
 
         setFeatures([
           { label: "Garáž", value: propertyDoc.data().garage },
@@ -262,13 +267,22 @@ const PropertyDetails: React.FC = () => {
       setPushEnabled(value === "true");
     };
 
+    const checkIfSaved = async () => {
+      const savedProperties = (await get("properties")) || [];
+      const isSaved = savedProperties.some(
+        (savedProperty: Property) => savedProperty.propertyId === propertyId
+      );
+      setIsSavedOffline(isSaved);
+    };
+
     console.log("Fetching data for property ID:", propertyId);
     console.log("Property ID:", propertyId);
 
     fetchData();
     notificationsEnabled();
     checkNotificationPref();
-  }, [propertyId, user, history]);
+    checkIfSaved();
+  }, [propertyId, user, history, get]);
 
   useEffect(() => {
     if (!property) return;
@@ -346,6 +360,26 @@ const PropertyDetails: React.FC = () => {
     });
   };
 
+  const handleSavePropertyOffline = async () => {
+    if (!property || !details) return;
+    await hapticsLight();
+
+    const propertyToSave = { ...property };
+
+    // Save data to storage
+    const existing = (await get("properties")) || [];
+    await set("properties", [...existing, propertyToSave]);
+
+    const detailsMap = (await get("detailsMap")) || {};
+    await set("detailsMap", {
+      ...detailsMap,
+      [property.propertyId]: { ...details, propertyId },
+    });
+
+    showToast("Nemovitost byla uložena offline", 2500);
+    setIsSavedOffline(true);
+  };
+
   if (!property || !details)
     return (
       <IonPage className="property-details-page">
@@ -368,74 +402,173 @@ const PropertyDetails: React.FC = () => {
               }}
             />
           </div>
-
           <div className="property-body">
-            <h1>
-              <IonSkeletonText
-                animated
-                style={{ width: "70%", height: "25px", borderRadius: "3px" }}
-              />
-            </h1>
-            <IonSkeletonText
-              animated
-              style={{ width: "10%", height: "50px", borderRadius: "3px" }}
-            />
+            <IonCard className="property-card title-card">
+              <IonCardHeader>
+                <IonCardTitle className="property-title">
+                  <IonSkeletonText
+                    animated
+                    style={{
+                      width: "100%",
+                      height: "20px",
+                      borderRadius: "3px",
+                    }}
+                  />
+                  <IonSkeletonText
+                    animated
+                    style={{
+                      width: "70%",
+                      height: "20px",
+                      borderRadius: "3px",
+                    }}
+                  />
+                </IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent className="property-status">
+                <IonChip color={"success"}>
+                  <IonLabel>
+                    <IonSkeletonText
+                      animated
+                      style={{
+                        width: "50px",
+                        height: "17px",
+                        borderRadius: "3px",
+                      }}
+                    />
+                  </IonLabel>
+                </IonChip>
+                <IonText className="property-price">
+                  <IonSkeletonText
+                    animated
+                    style={{
+                      width: "70px",
+                      height: "17px",
+                      borderRadius: "3px",
+                    }}
+                  />
+                </IonText>
+              </IonCardContent>
+            </IonCard>
 
-            <h2>
-              <IonSkeletonText
-                animated
-                style={{ width: "40%", height: "18px", borderRadius: "3px" }}
-              />
-            </h2>
-            <p>
-              <IonSkeletonText
-                animated
-                style={{ width: "20%", height: "15px", borderRadius: "3px" }}
-              />
-              .
-              <IonSkeletonText
-                animated
-                style={{ width: "30%", height: "15px", borderRadius: "3px" }}
-              />
-              .
-              <IonSkeletonText
-                animated
-                style={{ width: "20%", height: "15px", borderRadius: "3px" }}
-              />
-            </p>
-            <p>
-              <IonSkeletonText
-                animated
-                style={{ width: "55%", height: "16px", borderRadius: "3px" }}
-              />
-            </p>
-            {[...Array(5)].map((_, index) => (
-              <p key={index}>
-                <IonSkeletonText
-                  animated
-                  style={{ width: "100%", height: "17px", borderRadius: "3px" }}
-                />
-              </p>
-            ))}
-
-            <IonGrid>
-              <IonRow>
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <IonCol key={index}>
-                    <IonLabel>
+            <IonCard className="property-card">
+              <IonCardHeader>
+                <IonCardTitle className="section-title">
+                  Přehled nemovitosti
+                </IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonGrid>
+                  <IonRow className="bolder-content">
+                    <IonCol size="6" style={{ display: "flex" }}>
                       <IonSkeletonText
                         animated
                         style={{
-                          width: "30%",
-                          height: "15px",
+                          width: "50%",
+                          height: "17px",
                           borderRadius: "3px",
                         }}
                       />
-                    </IonLabel>
-                  </IonCol>
-                ))}
-              </IonRow>
-            </IonGrid>
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonSkeletonText
+                        animated
+                        style={{
+                          width: "50%",
+                          height: "17px",
+                          borderRadius: "3px",
+                        }}
+                      />
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonSkeletonText
+                        animated
+                        style={{
+                          width: "50%",
+                          height: "17px",
+                          borderRadius: "3px",
+                        }}
+                      />
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonSkeletonText
+                        animated
+                        style={{
+                          width: "50%",
+                          height: "17px",
+                          borderRadius: "3px",
+                        }}
+                      />
+                    </IonCol>
+                    {[...Array(6)].map((_, index) => (
+                      <IonCol
+                        key={index}
+                        size="6"
+                        style={{ display: "flex", alignItems: "center" }}
+                      >
+                        <IonSkeletonText
+                          animated
+                          style={{
+                            width: "50%",
+                            height: "17px",
+                            borderRadius: "3px",
+                          }}
+                        />
+                      </IonCol>
+                    ))}
+                  </IonRow>
+                </IonGrid>
+              </IonCardContent>
+            </IonCard>
+
+            <IonCard className="property-card">
+              <IonCardHeader>
+                <IonCardTitle className="section-title">Vybavení</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonGrid>
+                  <IonRow>
+                    {[...Array(10)].map((_, index) => (
+                      <IonCol
+                        size="6"
+                        key={index}
+                        className="bolder-content"
+                        style={{ display: "flex", alignItems: "center" }}
+                      >
+                        <IonIcon
+                          icon={checkmarkOutline}
+                          color="primary"
+                          className="boolean-icon"
+                        />
+                        <IonSkeletonText
+                          animated
+                          style={{
+                            width: "50%",
+                            height: "17px",
+                            borderRadius: "3px",
+                          }}
+                        />
+                      </IonCol>
+                    ))}
+                  </IonRow>
+                </IonGrid>
+              </IonCardContent>
+            </IonCard>
+
+            <IonCard className="property-card">
+              <IonCardHeader>
+                <IonCardTitle className="section-title">Popis</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonSkeletonText
+                  animated
+                  style={{
+                    width: "100%",
+                    height: "300px",
+                    borderRadius: "3px",
+                  }}
+                />
+              </IonCardContent>
+            </IonCard>
           </div>
         </IonContent>
       </IonPage>
@@ -460,6 +593,17 @@ const PropertyDetails: React.FC = () => {
               onClick={handleShare}
             />
           </IonButtons>
+          {!isSavedOffline && (
+            <IonButtons slot="end" style={{ paddingRight: "15px" }}>
+              <IonIcon
+                icon={cloudDownloadOutline}
+                color="secondary"
+                slot="icon-only"
+                className="toolbar-icon"
+                onClick={handleSavePropertyOffline}
+              />
+            </IonButtons>
+          )}
           {user?.uid === property.ownerId ? (
             <IonButtons slot="end" style={{ paddingRight: "15px" }}>
               <IonIcon

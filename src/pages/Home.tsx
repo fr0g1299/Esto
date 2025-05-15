@@ -17,6 +17,7 @@ import {
   IonCardSubtitle,
   IonSkeletonText,
   useIonViewDidEnter,
+  IonItemDivider,
 } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { notificationsOutline, add } from "ionicons/icons";
@@ -40,6 +41,8 @@ import "swiper/css";
 import "swiper/css/effect-coverflow";
 import { useAuth } from "../hooks/useAuth";
 import { hapticsLight } from "../services/haptics";
+import { useStorage } from "../hooks/useStorage";
+import { Network } from "@capacitor/network";
 
 const slideOpts = {
   slidesPerView: 1.2,
@@ -78,6 +81,13 @@ interface TrendingProperty {
   views: number;
 }
 
+interface OfflineProperty {
+  propertyId: string;
+  title: string;
+  price: number;
+  city: string;
+}
+
 const fetchTrendingProperties = async () => {
   const q = query(collection(db, "trending"), orderBy("views", "desc"));
   const propertiesSnapshot = await getDocs(q);
@@ -112,14 +122,52 @@ const Home: React.FC = () => {
     []
   );
   const [unreadCount, setUnreadCount] = useState(0);
+  const { get, ready } = useStorage();
+  const [offlineProperties, setOfflineProperties] = useState<OfflineProperty[]>(
+    []
+  );
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const status = await Network.getStatus();
+      setIsOnline(status.connected);
+    };
+
+    Network.addListener("networkStatusChange", (status) =>
+      setIsOnline(status.connected)
+    );
+
+    checkStatus();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const trending = await fetchTrendingProperties();
-        const newest = await fetchNewestProperties();
-        setTrendingProperties(trending);
-        setNewestProperties(newest);
+        if (isOnline) {
+          // Fetch from Firestore
+          const trending = await fetchTrendingProperties();
+          const newest = await fetchNewestProperties();
+          setTrendingProperties(trending);
+          setNewestProperties(newest);
+
+          // Show the ion-tabbar
+          const tabBar = document.querySelector("ion-tab-bar");
+          if (tabBar) {
+            tabBar.style.display = "flex";
+          }
+        } else {
+          // Load from local storage
+          const offlineData = await get("properties");
+          if (offlineData) setOfflineProperties(offlineData);
+          console.log("Offline data loaded:", offlineData);
+
+          // Hide the ion-tabbar
+          const tabBar = document.querySelector("ion-tab-bar");
+          if (tabBar) {
+            tabBar.style.display = "none";
+          }
+        }
       } catch (error) {
         console.error("Error fetching properties:", error);
       } finally {
@@ -129,7 +177,8 @@ const Home: React.FC = () => {
 
     fetchData();
     getNotificationSize();
-  });
+    // eslint-disable-next-line
+  }, [isOnline, ready, get]);
 
   useIonViewDidEnter(() => {
     getNotificationSize();
@@ -146,6 +195,84 @@ const Home: React.FC = () => {
     const snapshot = await getDocs(unreadQuery);
     setUnreadCount(snapshot.size); // For future use, right now size color is transparent
   };
+
+  if (!isOnline) {
+    return (
+      <IonPage className="home-page">
+        <IonContent fullscreen scrollEvents>
+          <IonGrid>
+            <IonRow className="ion-align-items-center ion-justify-content-between ion-padding-horizontal">
+              <IonCol size="auto">
+                <IonText>
+                  <IonItemDivider style={{ borderBottom: "none" }}>
+                    <h2 className="heading-text">
+                      <strong>Offline Režim</strong> <br />
+                    </h2>
+                  </IonItemDivider>
+                  <h2 className="heading-text">
+                    <strong>Stažené Nemovitosti</strong> <br />
+                    pro offline prohlížení
+                  </h2>
+                </IonText>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
+
+          {loading ? (
+            [...Array(5)].map((_, index) => (
+              <IonCard key={index} className="property-card-list">
+                <IonCardHeader>
+                  <IonCardTitle>
+                    <IonSkeletonText
+                      animated
+                      style={{ width: "80%", height: "20px" }}
+                    ></IonSkeletonText>
+                  </IonCardTitle>
+                  <IonCardSubtitle>
+                    <IonSkeletonText
+                      animated
+                      style={{ width: "10%" }}
+                    ></IonSkeletonText>
+                  </IonCardSubtitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <IonSkeletonText
+                    animated
+                    style={{ width: "30%", height: "14px" }}
+                  ></IonSkeletonText>
+                </IonCardContent>
+              </IonCard>
+            ))
+          ) : offlineProperties.length > 0 ? (
+            offlineProperties.map((property) => (
+              <IonCard
+                key={property.propertyId}
+                className="property-card-list"
+                onClick={() => {
+                  console.log("Offline property clicked:", property);
+                  history.push(`/offline/${property.propertyId}`);
+                }}
+              >
+                <IonCardHeader>
+                  <IonCardTitle>{property.title}</IonCardTitle>
+                  <IonCardSubtitle>{property.city}</IonCardSubtitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <strong>{property.price.toLocaleString("cs")} Kč</strong>
+                </IonCardContent>
+              </IonCard>
+            ))
+          ) : (
+            <IonCard className="property-card-list">
+              <IonCardHeader>
+                <IonCardTitle>Nemáte uloženy žádné nemovitosti.</IonCardTitle>
+              </IonCardHeader>
+            </IonCard>
+          )}
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage className="home-page">
