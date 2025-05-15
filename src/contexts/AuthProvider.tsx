@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { Capacitor } from "@capacitor/core";
 
 const savePushToken = async (uid: string) => {
   try {
@@ -67,7 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           lastSeen: serverTimestamp(),
         });
 
-        await savePushToken(firebaseUser.uid);
+        if (Capacitor.getPlatform() !== "web") {
+          await savePushToken(firebaseUser.uid);
+        }
       }
 
       console.log("User state changed:", firebaseUser);

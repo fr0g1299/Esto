@@ -14,6 +14,8 @@ import {
   EmailAuthProvider,
   getAuth,
   reauthenticateWithCredential,
+  updateProfile,
+  User,
 } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
@@ -62,12 +64,16 @@ export const getUserDocument = async (userId: string) => {
 };
 
 export const updateUserDocument = async (
-  userId: string,
+  user: User,
   firstName: string,
   lastName: string,
   phone: string
 ) => {
-  const userRef = doc(db, "users", userId);
+  const userRef = doc(db, "users", user.uid);
+
+  await updateProfile(user, {
+    displayName: `${firstName} ${lastName}`,
+  });
 
   await updateDoc(userRef, {
     firstName,

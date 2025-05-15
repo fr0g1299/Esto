@@ -81,6 +81,7 @@ export const registerUser = async (
       createdAt: serverTimestamp(),
       lastSeen: serverTimestamp(),
       pushNotificationsEnabled: true,
+      pushToken: null,
       userRole: "User",
     });
 

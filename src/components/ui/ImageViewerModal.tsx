@@ -16,6 +16,7 @@ import "swiper/css/zoom";
 import "swiper/css/pagination";
 
 import "./ImageViewerModal.css";
+import { Capacitor } from "@capacitor/core";
 
 interface Props {
   isOpen: boolean;
@@ -38,14 +39,18 @@ const ImageViewerModal: React.FC<Props> = ({ isOpen, onClose, images }) => {
   };
 
   useIonViewWillLeave(() => {
-    ScreenOrientation.lock({ orientation: "portrait" });
+    if (Capacitor.getPlatform() !== "web") {
+      ScreenOrientation.lock({ orientation: "portrait" });
+    }
   });
 
   useEffect(() => {
-    if (isOpen) {
-      ScreenOrientation.unlock();
-    } else {
-      ScreenOrientation.lock({ orientation: "portrait" });
+    if (Capacitor.getPlatform() !== "web") {
+      if (isOpen) {
+        ScreenOrientation.unlock();
+      } else {
+        ScreenOrientation.lock({ orientation: "portrait" });
+      }
     }
   }, [isOpen]);
 

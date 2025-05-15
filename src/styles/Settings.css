@@ -78,6 +78,19 @@
     margin-left: auto;
     text-decoration: none;
   }
+
+  .logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .logo {
+    width: 8vw;
+    height: auto;
+    margin: 15px;
+  }
 }
 
 .account-delete {

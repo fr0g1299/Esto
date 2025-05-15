@@ -73,6 +73,7 @@ import { setNotificationPreference } from "./services/notificationsService";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import AdminDashboard from "./components/AdminDashboard";
+import { Capacitor } from "@capacitor/core";
 
 setupIonicReact();
 
@@ -80,7 +81,9 @@ const App: React.FC = () => {
   const { get, ready } = useStorage();
   const { user } = useAuth();
   useEffect(() => {
-    ScreenOrientation.lock({ orientation: "portrait" });
+    if (Capacitor.getPlatform() !== "web") {
+      ScreenOrientation.lock({ orientation: "portrait" });
+    }
   }, []);
 
   useEffect(() => {
@@ -116,14 +119,16 @@ const App: React.FC = () => {
 
     applyInitialTheme();
     initPushPreference();
-    setSafeArea();
+    if (Capacitor.getPlatform() !== "web") {
+      setSafeArea();
+    }
   }, [get, ready, user]);
 
   useEffect(() => {
     const applyStatusBarStyle = async () => {
       try {
         // Transparent background + overlay
-        await StatusBar.setBackgroundColor({ color: "transparent" });
+        await StatusBar.setBackgroundColor({ color: "#00000000" });
         await StatusBar.setOverlaysWebView({ overlay: true });
 
         // Initial style based on theme
@@ -138,27 +143,31 @@ const App: React.FC = () => {
       }
     };
 
-    applyStatusBarStyle();
+    if (Capacitor.getPlatform() !== "web") {
+      applyStatusBarStyle();
+    }
   }, []);
 
   useEffect(() => {
-    PushNotifications.addListener("registrationError", (err) => {
-      console.error("Push registration error:", err);
-    });
+    if (Capacitor.getPlatform() !== "web") {
+      PushNotifications.addListener("registrationError", (err) => {
+        console.error("Push registration error:", err);
+      });
 
-    PushNotifications.addListener(
-      "pushNotificationReceived",
-      (notification) => {
-        console.log("Push received", notification);
-      }
-    );
+      PushNotifications.addListener(
+        "pushNotificationReceived",
+        (notification) => {
+          console.log("Push received", notification);
+        }
+      );
 
-    PushNotifications.addListener(
-      "pushNotificationActionPerformed",
-      (result) => {
-        console.log("Notification action performed", result.notification);
-      }
-    );
+      PushNotifications.addListener(
+        "pushNotificationActionPerformed",
+        (result) => {
+          console.log("Notification action performed", result.notification);
+        }
+      );
+    }
   }, []);
 
   return (

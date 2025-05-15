@@ -14,6 +14,7 @@ import {
   IonNote,
   useIonToast,
   IonAlert,
+  IonImg,
 } from "@ionic/react";
 import { useStorage } from "../hooks/useStorage";
 import { useEffect, useRef, useState } from "react";
@@ -144,13 +145,13 @@ const Settings: React.FC = () => {
     const pass = e;
     setNewPassword(pass);
     if (pass.length < 6 && pass.length != 0) {
-      setErrorMessage("Password must be at least 6 characters long");
+      setErrorMessage("Heslo musí mít alespoň 6 znaků");
     } else {
       setErrorMessage("");
       setErrorMessageConfirm("");
     }
     if (pass !== confirmPassword && pass.length != 0) {
-      setErrorMessageConfirm("Passwords do not match");
+      setErrorMessageConfirm("Hesla se neshodují");
     } else {
       setErrorMessageConfirm("");
     }
@@ -165,7 +166,7 @@ const Settings: React.FC = () => {
     console.log(newPassword.length);
 
     if (newPassword !== confirm) {
-      setErrorMessageConfirm("Passwords do not match");
+      setErrorMessageConfirm("Hesla se neshodují");
     } else {
       console.log("Passwords match");
       setErrorMessageConfirm("");
@@ -175,32 +176,36 @@ const Settings: React.FC = () => {
   const saveProfile = async () => {
     if (!user) return;
 
-    updateUserDocument(user.uid, firstName, lastName, phone);
+    updateUserDocument(user, firstName, lastName, phone);
 
     if (newPassword) {
       try {
         await changeUserPassword(oldPassword, newPassword);
-        showToast("Heslo bylo úspěšně změněno.", 2500);
-      } catch (error: unknown) {
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "code" in error &&
-          "message" in error
-        ) {
-          if (error.code === "auth/invalid-credential") {
-            showToast("Stávající heslo je nesprávné.", 2500);
-          } else if (error.code === "auth/weak-password") {
+        showToast("Heslo a údaje byly úspěšně změněno.", 2500);
+        // eslint-disable-next-line
+      } catch (error: any) {
+        switch (error.code) {
+          case "auth/user-not-found":
+            showToast("Uživatel s tímto emailem neexistuje.", 2500);
+            break;
+          case "auth/wrong-password":
+            showToast("Zadané heslo je nesprávné.", 2500);
+            break;
+          case "auth/weak-password":
             showToast(
               "Nové heslo je příliš slabé - minimální délka je 6 znaků.",
               2500
             );
-          } else {
-            console.log(error.message);
-          }
+            break;
+          default:
+            console.error("Error authenticating in user:", error);
         }
       }
+    } else {
+      showToast("Údaje byly úspěšně uloženy.", 2500);
     }
+
+    modal.current?.dismiss();
   };
 
   const handleDeleteAccount = async (password: string) => {
@@ -210,23 +215,17 @@ const Settings: React.FC = () => {
 
       showToast("Váš účet byl úspěšně smazán", 2500);
       history.push("/home");
-    } catch (error: unknown) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        "message" in error
-      ) {
-        const firebaseError = error as { code: string; message: string };
-        if (firebaseError.code === "auth/invalid-credential") {
-          showToast("Zadané heslo je nesprávné.", 2500);
-        } else if (firebaseError.code === "auth/user-not-found") {
+      // eslint-disable-next-line
+    } catch (error: any) {
+      switch (error.code) {
+        case "auth/user-not-found":
           showToast("Uživatel s tímto emailem neexistuje.", 2500);
-        } else {
-          console.log("firebase: " + firebaseError.message);
-        }
-      } else {
-        console.log(error);
+          break;
+        case "auth/wrong-password":
+          showToast("Zadané heslo je nesprávné.", 2500);
+          break;
+        default:
+          console.error("Error authenticating in user:", error);
       }
     }
   };
@@ -490,6 +489,9 @@ const Settings: React.FC = () => {
           </IonItem>
         </IonList>
         <IonNote className="version-note">Ver. {__APP_VERSION__}</IonNote>
+        <div className="logo-container">
+          <IonImg src="assets/logo.svg" alt="Logo" className="logo" />
+        </div>
         {role === "Admin" && (
           <IonButton
             routerLink="/admin"
