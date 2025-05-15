@@ -50,6 +50,7 @@ import {
 } from "ionicons/icons";
 import { saveFavoriteFilter } from "../services/favoritesService";
 import { useAuth } from "../hooks/useAuth";
+import { hapticsHeavy, hapticsLight } from "../services/haptics";
 
 interface Property {
   id: string;
@@ -226,6 +227,7 @@ const SearchResults: React.FC = () => {
 
   const handleSaveToFavorites = (name: string) => {
     if (!name || !name.trim()) {
+      hapticsHeavy();
       showToast("Název filtru je povinný!", 2500);
       return;
     }
@@ -250,7 +252,12 @@ const SearchResults: React.FC = () => {
             />
           </IonButtons>
           <IonButtons slot="end" style={{ paddingRight: "15px" }}>
-            <IonIcon icon={starOutline} slot="icon-only" id="favorite-alert" />
+            <IonIcon
+              icon={starOutline}
+              slot="icon-only"
+              id="favorite-alert"
+              onClick={async () => await hapticsLight()}
+            />
           </IonButtons>
           <IonTitle>Výsledky hledání</IonTitle>
         </IonToolbar>

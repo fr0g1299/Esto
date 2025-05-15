@@ -17,6 +17,7 @@ import { useHistory } from "react-router-dom";
 import "../styles/Search.css";
 import FormInput from "../components/ui/FormInput";
 import ToggleChip from "../components/ui/ToggleChip";
+import { hapticsMedium } from "../services/haptics";
 
 const Search: React.FC = () => {
   const history = useHistory();
@@ -102,8 +103,9 @@ const Search: React.FC = () => {
     { label: "Solární panely", checked: solarPanels, setter: setSolarPanels },
   ];
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const query = new URLSearchParams();
+    await hapticsMedium();
 
     if (city.trim()) query.append("city", city);
     if (address.trim()) {
@@ -303,7 +305,7 @@ const Search: React.FC = () => {
           color="primary"
           expand="block"
           onClick={handleSearch}
-          disabled={!radiusString} //TODO: normal check for everything
+          disabled={!radiusString}
         >
           Hledat
         </IonButton>

@@ -27,6 +27,7 @@ import {
   getSavedFilters,
   removeSavedFilter,
 } from "../services/favoritesService";
+import { hapticsHeavy, hapticsLight } from "../services/haptics";
 
 interface HistoryProps {
   id: string;
@@ -138,6 +139,7 @@ const Collection: React.FC = () => {
 
   const handleViewedHistory = async () => {
     if (!ready) return;
+    await hapticsLight();
     const newValue = !historyExpanded;
     setHistoryExpanded(newValue);
 
@@ -157,6 +159,7 @@ const Collection: React.FC = () => {
 
   const handleFavoriteFolders = async () => {
     if (!user) return;
+    await hapticsLight();
     const newValue = !folderExpanded;
     setFolderExpanded(newValue);
 
@@ -175,6 +178,7 @@ const Collection: React.FC = () => {
 
   const handleSavedFilter = async () => {
     if (!user) return;
+    await hapticsLight();
     if (savedFilters.length > 0) return;
     const newValue = !filtersExpanded;
     setFiltersExpanded(newValue);
@@ -195,6 +199,7 @@ const Collection: React.FC = () => {
 
   const handleRemoveFilter = async (filterId: string) => {
     if (!user) return;
+    await hapticsHeavy();
     try {
       await removeSavedFilter(user.uid, filterId);
 

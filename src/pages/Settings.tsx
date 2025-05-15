@@ -34,6 +34,7 @@ import { arrowBackOutline, mailOutline } from "ionicons/icons";
 import { changeUserPassword, logoutUser } from "../services/authService";
 import { useHistory } from "react-router";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
 
 const Settings: React.FC = () => {
   const { user, role } = useAuth();
@@ -111,9 +112,11 @@ const Settings: React.FC = () => {
   };
 
   const toggleTheme = async () => {
+    await hapticsLight();
     const newTheme = !isDarkTheme;
     setIsDarkTheme(newTheme);
     console.log("Stored theme:", newTheme);
+
     if (newTheme) {
       StatusBar.setStyle({ style: Style.Dark });
     } else {
@@ -127,6 +130,7 @@ const Settings: React.FC = () => {
 
   const toggleNotifications = async () => {
     if (!user) return;
+    await hapticsLight();
 
     const newPushEnabled = !pushEnabled;
     setPushEnabled(newPushEnabled);
@@ -145,12 +149,14 @@ const Settings: React.FC = () => {
     const pass = e;
     setNewPassword(pass);
     if (pass.length < 6 && pass.length != 0) {
+      hapticsHeavy();
       setErrorMessage("Heslo musí mít alespoň 6 znaků");
     } else {
       setErrorMessage("");
       setErrorMessageConfirm("");
     }
     if (pass !== confirmPassword && pass.length != 0) {
+      hapticsHeavy();
       setErrorMessageConfirm("Hesla se neshodují");
     } else {
       setErrorMessageConfirm("");
@@ -161,11 +167,8 @@ const Settings: React.FC = () => {
     const confirm = e;
     setConfirmPassword(confirm);
 
-    console.log("Confirm password:", confirm);
-    console.log("Password:", newPassword);
-    console.log(newPassword.length);
-
     if (newPassword !== confirm) {
+      hapticsHeavy();
       setErrorMessageConfirm("Hesla se neshodují");
     } else {
       console.log("Passwords match");
@@ -186,12 +189,15 @@ const Settings: React.FC = () => {
       } catch (error: any) {
         switch (error.code) {
           case "auth/user-not-found":
+            await hapticsHeavy();
             showToast("Uživatel s tímto emailem neexistuje.", 2500);
             break;
           case "auth/wrong-password":
+            await hapticsHeavy();
             showToast("Zadané heslo je nesprávné.", 2500);
             break;
           case "auth/weak-password":
+            await hapticsHeavy();
             showToast(
               "Nové heslo je příliš slabé - minimální délka je 6 znaků.",
               2500
@@ -202,6 +208,7 @@ const Settings: React.FC = () => {
         }
       }
     } else {
+      await hapticsMedium();
       showToast("Údaje byly úspěšně uloženy.", 2500);
     }
 
@@ -213,15 +220,18 @@ const Settings: React.FC = () => {
       await deleteUserAccount(password);
       await set("viewedHistory", []);
 
+      await hapticsLight();
       showToast("Váš účet byl úspěšně smazán", 2500);
       history.push("/home");
       // eslint-disable-next-line
     } catch (error: any) {
       switch (error.code) {
         case "auth/user-not-found":
+          await hapticsHeavy();
           showToast("Uživatel s tímto emailem neexistuje.", 2500);
           break;
         case "auth/wrong-password":
+          await hapticsHeavy();
           showToast("Zadané heslo je nesprávné.", 2500);
           break;
         default:

@@ -39,6 +39,7 @@ import { Autoplay, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import { useAuth } from "../hooks/useAuth";
+import { hapticsLight } from "../services/haptics";
 
 const slideOpts = {
   slidesPerView: 1.2,
@@ -187,7 +188,8 @@ const Home: React.FC = () => {
             ) : (
               <a
                 className="login"
-                onClick={() => {
+                onClick={async () => {
+                  await hapticsLight();
                   history.push("/login");
                 }}
               >

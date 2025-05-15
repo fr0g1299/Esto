@@ -12,6 +12,7 @@ import React, { useState } from "react";
 import { loginUser } from "../services/authService";
 import { useHistory } from "react-router-dom";
 import "../styles/LoginAndRegistration.css";
+import { hapticsHeavy, hapticsMedium } from "../services/haptics";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -27,6 +28,7 @@ const Login: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    await hapticsMedium();
     if (!email || !password) {
       setIsEmailValid(false);
       setIsPassValid(false);
@@ -42,9 +44,11 @@ const Login: React.FC = () => {
     } catch (error: any) {
       switch (error.code) {
         case "auth/user-not-found":
+          await hapticsHeavy();
           setIsEmailValid(false);
           break;
         case "auth/wrong-password":
+          await hapticsHeavy();
           setIsPassValid(false);
           break;
         default:
@@ -79,7 +83,7 @@ const Login: React.FC = () => {
       <IonContent fullscreen>
         <div className="content-container">
           <div className="logo-container">
-            <IonImg src="assets/logo/logo.svg" alt="Logo" className="logo" />
+            <IonImg src="assets/logo.svg" alt="Logo" className="logo" />
           </div>
           <div className="input-container">
             <IonList>

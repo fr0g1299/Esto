@@ -41,6 +41,7 @@ import {
   pricetagOutline,
 } from "ionicons/icons";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import { hapticsHeavy, hapticsLight } from "../services/haptics";
 
 interface Notification {
   id: string;
@@ -105,6 +106,7 @@ const Notifications: React.FC = () => {
 
   const handleSeen = async (notificationId: string) => {
     if (!user) return;
+    await hapticsLight();
 
     await updateDoc(
       doc(db, "users", user.uid, "notifications", notificationId),
@@ -122,6 +124,7 @@ const Notifications: React.FC = () => {
 
   const handleDelete = async (notificationId: string) => {
     if (!user) return;
+    await hapticsHeavy();
 
     // Add a "removing" class for animation
     setNotifications((prev) =>

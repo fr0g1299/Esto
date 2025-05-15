@@ -32,11 +32,12 @@ import { useParams, useLocation, useHistory } from "react-router";
 import { homeOutline, trashOutline } from "ionicons/icons";
 
 import "../styles/Folder.css";
+import { hapticsHeavy } from "../services/haptics";
 
 interface RouteParams {
   folderId: string;
 }
-// TODO: try haptics
+
 interface FavoriteProperty {
   id: string;
   title: string;
@@ -75,11 +76,13 @@ const Folder: React.FC = () => {
   const handleRemoveFromFolder = async (propertyId: string) => {
     if (!user) return;
     try {
+      await hapticsHeavy();
       await removePropertyFromFolder(user.uid, folderId, propertyId);
       setProperties((prev) =>
         prev.filter((property) => property.id !== propertyId)
       );
     } catch (error) {
+      await hapticsHeavy();
       console.error("Error removing property from folder:", error);
     }
   };
@@ -88,14 +91,17 @@ const Folder: React.FC = () => {
     if (!user) return;
 
     if (name == "Oblíbené") {
+      await hapticsHeavy();
       showToast("Nemůžete vymazat hlavní složku", 2500);
       return;
     }
 
     try {
+      await hapticsHeavy();
       await removeFavoriteFolder(user.uid, folderId);
       history.push("/collections");
     } catch (error) {
+      await hapticsHeavy();
       console.error("Failed to remove folder:", error);
       showToast("Smazání složky selhalo.", 2500);
     }

@@ -73,6 +73,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Share } from "@capacitor/share";
 import { getOrCreateChat } from "../services/chatService";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import { hapticsLight } from "../services/haptics";
 
 interface RouteParams {
   propertyId: string;
@@ -306,6 +307,7 @@ const PropertyDetails: React.FC = () => {
   }, [viewerOpen]);
 
   const handleClose = async () => {
+    await hapticsLight();
     setShowFavoriteModal(false);
     const updated = await isPropertyFavorited(user?.uid ?? "", propertyId);
     setIsFavorite(updated);
@@ -488,7 +490,10 @@ const PropertyDetails: React.FC = () => {
                 slot="icon-only"
                 color="danger"
                 className="toolbar-icon"
-                onClick={() => setShowFavoriteModal(true)}
+                onClick={async () => {
+                  await hapticsLight();
+                  setShowFavoriteModal(true);
+                }}
               />
             </IonButtons>
           )}

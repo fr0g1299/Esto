@@ -8,6 +8,7 @@ import {
   IonList,
   IonNote,
   IonLoading,
+  useIonToast,
 } from "@ionic/react";
 import React, { useEffect, useState } from "react";
 import { registerUser } from "../services/authService";
@@ -15,7 +16,7 @@ import { MaskitoOptions, maskitoTransform } from "@maskito/core";
 import { useMaskito } from "@maskito/react";
 import { useHistory } from "react-router-dom";
 import "../styles/LoginAndRegistration.css";
-
+import { hapticsHeavy, hapticsMedium } from "../services/haptics";
 
 const Register: React.FC = () => {
   const history = useHistory();
@@ -26,6 +27,7 @@ const Register: React.FC = () => {
   const [lastName, setLastName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showToast] = useIonToast();
 
   const [isTouched, setIsTouched] = useState(false);
   const [isEmailValid, setIsEmailValid] = useState<boolean | undefined>(
@@ -92,8 +94,10 @@ const Register: React.FC = () => {
   useEffect(() => {
     if (password.length < 6) {
       setIsPassValid(false);
+      hapticsHeavy();
     } else if (password !== confirmPassword) {
       setIsPassValid(true);
+      hapticsHeavy();
       setIsPassConfirmValid(false);
     } else {
       setIsPassValid(true);
@@ -112,21 +116,25 @@ const Register: React.FC = () => {
 
     if (!username) {
       setUsernameMessage("Uživatelské jméno je povinné");
+      hapticsHeavy();
       setIsUserNameValid(false);
     } else {
       setIsUserNameValid(true);
     }
     if (!phone) {
+      hapticsHeavy();
       setIsPhoneValid(false);
     } else {
       setIsPhoneValid(true);
     }
     if (!firstName) {
+      hapticsHeavy();
       setIsFirstNameValid(false);
     } else {
       setIsFirstNameValid(true);
     }
     if (!lastName) {
+      hapticsHeavy();
       setIsLastNameValid(false);
     } else {
       setIsLastNameValid(true);
@@ -141,16 +149,6 @@ const Register: React.FC = () => {
     const { isUserNameValid, isPhoneValid, isFirstNameValid, isLastNameValid } =
       handleValidation();
 
-    console.log(
-      isEmailValid,
-      isPassValid,
-      isPassConfirmValid,
-      isUserNameValid,
-      isPhoneValid,
-      isFirstNameValid,
-      isLastNameValid
-    );
-
     if (
       !isEmailValid ||
       !isPassValid ||
@@ -160,12 +158,14 @@ const Register: React.FC = () => {
       !isFirstNameValid ||
       !isLastNameValid
     ) {
-      console.log("Invalid input");
+      hapticsHeavy();
+      showToast("Vyplňte všechna pole správně", 1500);
       return;
     }
 
     try {
       setLoading(true);
+      await hapticsMedium();
 
       const user = await registerUser(email, password, {
         username,
@@ -184,13 +184,16 @@ const Register: React.FC = () => {
       switch (error.code) {
         case "auth/username-taken":
           setUsernameMessage("Uživatelské jméno je již obsazeno");
+          hapticsHeavy();
           setIsUserNameValid(false);
           break;
         case "auth/email-already-in-use":
           setEmailMessage("E-mail je již zaregistrován");
+          hapticsHeavy();
           setIsEmailValid(false);
           break;
         case "auth/password-does-not-meet-requirements":
+          hapticsHeavy();
           setIsPassValid(false);
           break;
         default:
@@ -204,11 +207,7 @@ const Register: React.FC = () => {
       <IonContent fullscreen>
         <div className="content-container">
           <div className="logo-container">
-            <IonImg
-              src="assets/logo/logo.svg"
-              alt="Logo"
-              className="logo smaller"
-            />
+            <IonImg src="assets/logo.svg" alt="Logo" className="logo smaller" />
           </div>
           <div className="input-container">
             <IonList>

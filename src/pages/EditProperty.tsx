@@ -44,6 +44,7 @@ import { useStorage } from "../hooks/useStorage";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
 import { geocodeAddress } from "../services/geocodingService";
+import { hapticsHeavy, hapticsMedium } from "../services/haptics";
 
 interface RouteParams {
   propertyId: string;
@@ -262,11 +263,8 @@ const EditProperty: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
+    setLoading(true);
 
-    if (images.length < 3) {
-      showToast("Musíte vybrat alespoň 3 obrázky.", 2500);
-      return;
-    }
     if (!garden) {
       setGardenSize("");
     }
@@ -274,6 +272,7 @@ const EditProperty: React.FC = () => {
       showToast("Musíte vybrat typ nemovitosti.", 2500);
       return;
     }
+
     try {
       const { latitude, longitude } = await geocodeAddress(address);
 
@@ -318,13 +317,18 @@ const EditProperty: React.FC = () => {
         ),
         removedUploadedImages
       );
+
+      await hapticsMedium();
+      setLoading(false);
       showToast("Inzerát byl úspěšně upraven!", 1500);
       setTimeout(() => history.push(`/details/${propertyId}`), 1500);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
+          await hapticsHeavy();
           showToast("Adresa nebyla nalezena.", 2500);
         } else {
+          await hapticsHeavy();
           showToast(error.message, 2500);
         }
       }
@@ -351,8 +355,9 @@ const EditProperty: React.FC = () => {
 
     await set("viewedHistory", updatedHistory);
 
+    await hapticsHeavy();
     showToast("Inzerát byl úspěšně smazán!", 3000);
-    setTimeout(() => history.replace("/"), 1500);
+    setTimeout(() => history.replace("/"), 1000);
   };
 
   return (
@@ -659,6 +664,20 @@ const EditProperty: React.FC = () => {
             >
               Uložit změny
             </IonButton>
+            {/* TODO: make this dynamic */}
+            {(images.length < 3 ||
+              !title ||
+              !price ||
+              !address ||
+              !type ||
+              !disposition) && (
+              <IonNote color="danger">
+                <strong>
+                  Musíte mít alespoň 3 obrázky a vyplnit všechny povinné údaje:
+                  Název inzerátu, Cena, Adresa, Typ nemovitosti, Dispozice
+                </strong>
+              </IonNote>
+            )}
             <IonItemDivider>
               <IonLabel>Vymazání inzerátu</IonLabel>
             </IonItemDivider>

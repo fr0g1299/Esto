@@ -33,6 +33,7 @@ import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import "../styles/CreateAndEdit.css";
 import ImageUploader from "../components/ui/ImageUploader";
 import { useHistory } from "react-router";
+import { hapticsHeavy, hapticsMedium } from "../services/haptics";
 
 interface UploadedImage {
   imageUrl: string;
@@ -243,14 +244,17 @@ const Create: React.FC = () => {
         images.filter((image): image is File => image instanceof File)
       );
 
+      await hapticsMedium();
       setLoading(false);
       showToast("Inzerát byl úspěšně vytvořen!", 1500);
       setTimeout(() => history.push(`/details/${propertyId}`), 750);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
+          await hapticsHeavy();
           showToast("Adresa nebyla nalezena.", 2500);
         } else {
+          await hapticsHeavy();
           showToast(error.message, 2500);
         }
       }
@@ -516,6 +520,20 @@ const Create: React.FC = () => {
         >
           Vytvořit inzerát
         </IonButton>
+        {/* TODO: make this dynamic */}
+        {(images.length < 3 ||
+          !title ||
+          !price ||
+          !address ||
+          !type ||
+          !disposition) && (
+          <IonNote color="danger">
+            <strong>
+              Musíte mít alespoň 3 obrázky a vyplnit všechny povinné údaje:
+              Název inzerátu, Cena, Adresa, Typ nemovitosti, Dispozice
+            </strong>
+          </IonNote>
+        )}
         <IonAlert
           trigger="trigger-reset"
           header="Opravdu chcete vyresetovat formulář?"

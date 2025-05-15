@@ -51,6 +51,7 @@ interface Props {
 }
 
 import React from "react";
+import { hapticsLight } from "../../services/haptics";
 
 const SortableImage = memo(
   ({ id, children }: { id: string; children: React.ReactNode }) => {
@@ -93,7 +94,7 @@ const ImageUploader: React.FC<Props> = ({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 25,
+        delay: 15,
         tolerance: 5,
       },
     })
@@ -133,6 +134,12 @@ const ImageUploader: React.FC<Props> = ({
     });
   }, [images]);
 
+  const handleDragStart = () => {
+    setTimeout(async () => {
+      await hapticsLight();
+    }, 15);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
@@ -140,6 +147,7 @@ const ImageUploader: React.FC<Props> = ({
       const newIndex = localImages.findIndex((img) => img.id === over?.id);
       const sorted = arrayMove(localImages, oldIndex, newIndex);
       setLocalImages(sorted);
+      hapticsLight();
     }
   };
 
@@ -242,6 +250,7 @@ const ImageUploader: React.FC<Props> = ({
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
             <SortableContext
