@@ -1,16 +1,14 @@
-import React from "react";
-import { IonPage, IonContent, useIonViewDidLeave } from "@ionic/react";
+import React, { useEffect, useState } from "react";
+import { IonPage, IonContent } from "@ionic/react";
+import { Link, useLocation } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "../styles/SearchMap.css";
-import { useEffect, useState, useRef } from "react";
-import { db } from "../firebase";
 import { collection, GeoPoint, getDocs } from "firebase/firestore";
-import { query, where } from "firebase/firestore";
+import { db } from "../firebase";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
-import { Link, useLocation } from "react-router-dom";
+import "../styles/SearchMap.css";
 
 interface Property {
   id: string;
@@ -35,127 +33,39 @@ const ResizeMap = () => {
   return null;
 };
 
-const MapBoundsInitializer: React.FC<{
-  onBoundsChange: (bounds: { sw: L.LatLng; ne: L.LatLng }) => void;
-}> = ({ onBoundsChange }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    const updateBounds = () => {
-      const bounds = map.getBounds();
-      onBoundsChange({
-        sw: bounds.getSouthWest(),
-        ne: bounds.getNorthEast(),
-      });
-    };
-
-    map.on("moveend", updateBounds);
-    updateBounds();
-
-    return () => {
-      map.off("moveend", updateBounds);
-    };
-  }, [map, onBoundsChange]);
-
-  return null;
-};
-
 const SearchMap: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
   const location = useLocation<LocationState>();
-  const [propertiesFromState, setPropertiesFromState] = useState<Property[]>(
-    []
-  );
+  const [properties, setProperties] = useState<Property[]>([]);
 
-  console.log(location);
-  const [mapBounds, setMapBounds] = useState<{
-    sw: L.LatLng;
-    ne: L.LatLng;
-  } | null>(null);
-  const lastFetchedBounds = useRef<{ sw: L.LatLng; ne: L.LatLng } | null>(null);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const propertyCache = useRef<Map<string, Property>>(new Map());
-
-  useIonViewDidLeave(() => {
-    if (propertiesFromState.length > 0) {
-      setPropertiesFromState([]);
-      setProperties([]);
-    }
-  });
+  const fetchAllProperties = async () => {
+    const propRef = collection(db, "properties");
+    const propSnap = await getDocs(propRef);
+    const props: Property[] = [];
+    propSnap.forEach((doc) => {
+      const data = doc.data();
+      props.push({
+        id: doc.id,
+        title: data.title,
+        geolocation: data.geolocation,
+        imageUrl: data.imageUrl,
+      });
+    });
+    setProperties(props);
+  };
 
   useEffect(() => {
-    setPropertiesFromState(location.state?.properties || []);
-  }, [location]);
-
-  useEffect(() => {
-    // If propertiesFromState is not empty, skip the debounce logic
-    if (propertiesFromState.length > 0) {
-      console.log("Using properties from state, skipping debounce logic.");
-      setProperties(propertiesFromState); // Set properties from state
-      return;
+    if (
+      location.state &&
+      location.state.properties &&
+      location.state.properties.length > 0
+    ) {
+      // If properties passed in state (from search result page)
+      setProperties(location.state.properties);
+    } else {
+      // Otherwise, fetch all properties from Firestore
+      fetchAllProperties();
     }
-
-    if (!mapBounds) return;
-
-    // Clear previous debounce
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-    debounceTimer.current = setTimeout(() => {
-      const { sw, ne } = mapBounds;
-      const last = lastFetchedBounds.current;
-
-      // Check if bounds changed significantly
-      const boundsChanged =
-        !last ||
-        Math.abs(last.sw.lat - sw.lat) > 0.15 ||
-        Math.abs(last.sw.lng - sw.lng) > 0.15 ||
-        Math.abs(last.ne.lat - ne.lat) > 0.15 ||
-        Math.abs(last.ne.lng - ne.lng) > 0.15;
-
-      if (!boundsChanged) {
-        console.log("Bounds didn't change significantly — skip fetch.");
-        return;
-      }
-
-      lastFetchedBounds.current = mapBounds;
-
-      const fetchVisibleProperties = async () => {
-        console.log("Fetching properties in bounds:", sw, ne);
-
-        const propertiesQuery = query(
-          collection(db, "properties"),
-          where("geolocation.latitude", ">=", sw.lat),
-          where("geolocation.latitude", "<=", ne.lat),
-          where("geolocation.longitude", ">=", sw.lng),
-          where("geolocation.longitude", "<=", ne.lng)
-        );
-
-        const snapshot = await getDocs(propertiesQuery);
-
-        const newProperties: Property[] = [];
-        const fetchedIds: Set<string> = new Set();
-
-        snapshot.forEach((doc) => {
-          fetchedIds.add(doc.id);
-          if (!propertyCache.current.has(doc.id)) {
-            const data = doc.data() as Omit<Property, "id">;
-            const property: Property = { id: doc.id, ...data };
-            propertyCache.current.set(doc.id, property);
-            newProperties.push(property);
-          }
-        });
-
-        if (newProperties.length > 0) {
-          console.log("New properties found:", newProperties.length);
-          setProperties((prev) => [...prev, ...newProperties]);
-        } else {
-          console.log("No new properties found.");
-        }
-      };
-
-      fetchVisibleProperties();
-    }, 900);
-  }, [mapBounds, properties, propertiesFromState]);
+  }, [location.state]);
 
   return (
     <IonPage className="search-map-page">
@@ -166,16 +76,13 @@ const SearchMap: React.FC = () => {
           scrollWheelZoom={true}
           className="map-container"
         >
-          {/* TODO: markers blink on load */}
-          {propertiesFromState.length === 0 && (
-            <MapBoundsInitializer onBoundsChange={setMapBounds} />
-          )}
           <ResizeMap />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy;'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MarkerClusterGroup
+            key={properties.map((p) => p.id).join(",")}
             spiderfyDistanceMultiplier={1}
             showCoverageOnHover={true}
           >
