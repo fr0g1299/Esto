@@ -1,4 +1,5 @@
 import { auth, db } from "../firebase";
+import { PushNotifications } from "@capacitor/push-notifications";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -41,6 +42,7 @@ export const registerUser = async (
   >
 ) => {
   try {
+    // Check if username is taken
     const usernameTaken = httpsCallable(functions, "usernameTaken");
 
     try {
@@ -56,6 +58,7 @@ export const registerUser = async (
       throw error;
     }
 
+    // Create user with email and password
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -65,32 +68,66 @@ export const registerUser = async (
     const user = userCredential.user;
     console.log("User registered:", user);
 
+    // Request permission for push notifications
+    let pushToken: string | null = null;
+    try {
+      const permissionResult = await PushNotifications.requestPermissions();
+      if (permissionResult.receive === "granted") {
+        // Register device for push notifications
+        await PushNotifications.register();
+
+        // Listen for the push token
+        const tokenPromise = new Promise<string>((resolve) => {
+          PushNotifications.addListener("registration", (token) => {
+            console.log("Push token received:", token.value);
+            resolve(token.value);
+          });
+        });
+
+        // Wait for the token
+        pushToken = await Promise.race([
+          tokenPromise,
+          new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error("Push token timeout")), 5000)
+          ),
+        ]);
+      } else {
+        console.warn("Push notification permission not granted");
+      }
+    } catch (error) {
+      console.error("Error fetching push token:", error);
+    }
+
     // For future use: Uncomment if you want to send a verification email
     // if (user) {
     //   await sendEmailVerification(user);
     //   console.log("Verification email sent");
     // }
 
+    // Update user profile
     await updateProfile(user, {
       displayName: `${userData.firstName} ${userData.lastName}`,
     });
 
+    // Store user data in Firestore, including push token
     await setDoc(doc(db, "users", user.uid), {
       ...userData,
       email: user.email,
       createdAt: serverTimestamp(),
       lastSeen: serverTimestamp(),
       pushNotificationsEnabled: true,
-      pushToken: null,
+      pushToken: pushToken,
       userRole: "User",
     });
 
+    // Create default favorite folder
     await addDoc(collection(db, `users/${user.uid}/favoriteFolders`), {
       title: "Oblíbené",
       propertyCount: 0,
       createdAt: serverTimestamp(),
     });
 
+    // Create welcome notification
     await addDoc(collection(db, `users/${user.uid}/notifications`), {
       title: "Vítejte!",
       message: "Váš účet byl úspěšně vytvořen.",

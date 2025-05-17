@@ -94,17 +94,18 @@ const Register: React.FC = () => {
   useEffect(() => {
     if (password.length < 6) {
       setIsPassValid(false);
-      hapticsHeavy();
     } else if (password !== confirmPassword) {
       setIsPassValid(true);
-      hapticsHeavy();
       setIsPassConfirmValid(false);
     } else {
       setIsPassValid(true);
       setIsPassConfirmValid(true);
     }
     setIsUserNameValid(true);
-  }, [password, confirmPassword, username]);
+    setIsPhoneValid(true);
+    setIsFirstNameValid(true);
+    setIsLastNameValid(true);
+  }, [password, confirmPassword, username, phone, firstName, lastName]);
 
   const handleValidation = () => {
     const results = {
@@ -121,7 +122,8 @@ const Register: React.FC = () => {
     } else {
       setIsUserNameValid(true);
     }
-    if (!phone) {
+    if (phone !== "+420") {
+      //TODO test
       hapticsHeavy();
       setIsPhoneValid(false);
     } else {
