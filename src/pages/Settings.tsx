@@ -35,6 +35,7 @@ import { changeUserPassword, logoutUser } from "../services/authService";
 import { useHistory } from "react-router";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
+import { Capacitor } from "@capacitor/core";
 
 const Settings: React.FC = () => {
   const { user, role } = useAuth();
@@ -117,10 +118,12 @@ const Settings: React.FC = () => {
     setIsDarkTheme(newTheme);
     console.log("Stored theme:", newTheme);
 
-    if (newTheme) {
-      StatusBar.setStyle({ style: Style.Dark });
-    } else {
-      StatusBar.setStyle({ style: Style.Light });
+    if (Capacitor.getPlatform() !== "web") {
+      if (newTheme) {
+        StatusBar.setStyle({ style: Style.Dark });
+      } else {
+        StatusBar.setStyle({ style: Style.Light });
+      }
     }
     requestAnimationFrame(() => {
       document.documentElement.classList.toggle("ion-palette-dark", newTheme);
@@ -476,14 +479,16 @@ const Settings: React.FC = () => {
               slot="end"
             />
           </IonItem>
-          <IonItem>
-            <IonLabel>Push notifikace</IonLabel>
-            <IonToggle
-              checked={pushEnabled}
-              slot="end"
-              onIonChange={toggleNotifications}
-            />
-          </IonItem>
+          {user && (
+            <IonItem>
+              <IonLabel>Push notifikace</IonLabel>
+              <IonToggle
+                checked={pushEnabled}
+                slot="end"
+                onIonChange={toggleNotifications}
+              />
+            </IonItem>
+          )}
           <IonItem
             lines="none"
             button

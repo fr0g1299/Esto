@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from "@capacitor/cli";
+import { KeyboardResize, KeyboardStyle } from "@capacitor/keyboard";
 
 const config: CapacitorConfig = {
   appId: "com.fr0g.esto",
@@ -7,6 +8,11 @@ const config: CapacitorConfig = {
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
+    },
+    Keyboard: {
+      resize: KeyboardResize.Body,
+      style: KeyboardStyle.Dark,
+      resizeOnFullScreen: true,
     },
   },
 };

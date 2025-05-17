@@ -96,7 +96,7 @@
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     overflow: hidden;
-    background: transparent;
+    background: var(--ion-item-background);
   }
 
   .filter-label {
