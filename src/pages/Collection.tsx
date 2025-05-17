@@ -28,9 +28,10 @@ import {
   removeSavedFilter,
 } from "../services/favoritesService";
 import { hapticsHeavy, hapticsLight } from "../services/haptics";
+import { getNotificationProperties } from "../services/propertyService";
 
 interface HistoryProps {
-  id: string;
+  propertyId: string;
   title: string;
   price: number;
   imageUrl: string;
@@ -69,12 +70,19 @@ interface PropertyDetails {
   heatingType: string;
 }
 
+interface NotificationProps {
+  id: string;
+  title: string;
+  price: number;
+  createdAt: string;
+}
+
 const extractReadableFilters = (query: string): string[] => {
   const params = new URLSearchParams(query);
   const result: string[] = [];
 
   // Add city, address, type, disposition if present
-  ["city", "address", "type", "disposition"].forEach((key) => {
+  ["city", "address", "radius", "type", "disposition"].forEach((key) => {
     const value = params.get(key);
     if (value) {
       result.push(`${displayNames[key]}: ${value}`);
@@ -127,6 +135,7 @@ const displayNames: Record<string, string> = {
   // Other filters
   city: "Město",
   address: "Adresa",
+  radius: "Rádius",
   type: "Typ",
   disposition: "Dispozice",
   minPrice: "Cena od",
@@ -143,11 +152,15 @@ const Collection: React.FC = () => {
   const [favoriteFolders, setFavoriteFolders] = useState<FolderProps[]>([]);
   const [accordionKey, setAccordionKey] = useState(0);
   const [savedFilters, setSavedFilters] = useState<FilterProps[]>([]);
+  const [notificationsPreferences, setNotificationsPreferences] = useState<
+    NotificationProps[]
+  >([]);
   const [loadingLevels, setLoadingLevels] = useState({
     viewedHistory: true,
     favoriteFolders: true,
     savedFilters: true,
     offlineProperties: true,
+    notificationsPreferences: true,
   });
 
   const [showAlert, setShowAlert] = useState(false);
@@ -157,6 +170,7 @@ const Collection: React.FC = () => {
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [offlineExpanded, setOfflineExpanded] = useState(false);
+  const [notificationsExpanded, setNotificationsExpanded] = useState(false);
   const slidingRef = useRef<HTMLIonItemSlidingElement | null>(null);
 
   useIonViewDidLeave(() => {
@@ -270,6 +284,28 @@ const Collection: React.FC = () => {
     }
   };
 
+  const handleNotificationPreferences = async () => {
+    if (!user) return;
+    await hapticsLight();
+    const newValue = !notificationsExpanded;
+    setNotificationsExpanded(newValue);
+
+    if (!notificationsExpanded) {
+      setLoadingLevels((prev) => ({ ...prev, notificationsPreferences: true }));
+
+      try {
+        setNotificationsPreferences(await getNotificationProperties(user.uid));
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setLoadingLevels((prev) => ({
+          ...prev,
+          notificationsPreferences: false,
+        }));
+      }
+    }
+  };
+
   return (
     <IonPage className="collections">
       <IonContent fullscreen className="ion-padding">
@@ -314,8 +350,8 @@ const Collection: React.FC = () => {
                 <>
                   {viewedHistory.map((property) => (
                     <IonItem
-                      key={property.id}
-                      routerLink={`/details/${property.id}`}
+                      key={property.propertyId}
+                      routerLink={`/details/${property.propertyId}`}
                       className="property-item"
                       lines="none"
                     >
@@ -324,7 +360,7 @@ const Collection: React.FC = () => {
                       </IonThumbnail>
                       <IonLabel className="property-label">
                         <h2>{property.title}</h2>
-                        <p>{property.price.toLocaleString()} $</p>
+                        <p>{property.price.toLocaleString("cs")} Kč</p>
                       </IonLabel>
                     </IonItem>
                   ))}
@@ -366,6 +402,7 @@ const Collection: React.FC = () => {
                 <>
                   {offlineProperties.map((property) => (
                     <IonItemSliding
+                      key={property.propertyId}
                       ref={(el) => {
                         if (property.propertyId === activeFilterId) {
                           slidingRef.current = el;
@@ -389,7 +426,7 @@ const Collection: React.FC = () => {
                       >
                         <IonLabel className="property-label">
                           <h2>{property.title}</h2>
-                          <p>{property.price.toLocaleString()} $</p>
+                          <p>{property.price.toLocaleString("cs")} Kč</p>
                         </IonLabel>
                       </IonItem>
                     </IonItemSliding>
@@ -520,6 +557,61 @@ const Collection: React.FC = () => {
                         </IonNote>
                       </IonItem>
                     </div>
+                  ))}
+                </>
+              )}
+            </IonList>
+          </IonAccordion>
+
+          <IonAccordion
+            value="notificationPreferences"
+            disabled={user === null}
+            onClick={handleNotificationPreferences}
+          >
+            <IonItem slot="header">
+              <IonLabel>Notifikace o změně ceny</IonLabel>
+            </IonItem>
+            <IonList slot="content">
+              {loadingLevels.notificationsPreferences ? (
+                [...Array(3)].map((_, index) => (
+                  <IonItem key={index} className="property-item" lines="none">
+                    <IonLabel className="property-label">
+                      <h2>
+                        <IonSkeletonText
+                          animated={true}
+                          style={{ width: "80%" }}
+                        />
+                      </h2>
+                      <p>
+                        <IonSkeletonText
+                          animated={true}
+                          style={{ width: "60%" }}
+                        />
+                      </p>
+                    </IonLabel>
+                  </IonItem>
+                ))
+              ) : !notificationsPreferences ||
+                notificationsPreferences.length === 0 ? (
+                <IonItem lines="none" className="property-item">
+                  <IonLabel className="property-label">
+                    Nemáte nastavené žádné notifikace.
+                  </IonLabel>
+                </IonItem>
+              ) : (
+                <>
+                  {notificationsPreferences.map((property) => (
+                    <IonItem
+                      key={property.id}
+                      routerLink={`/details/${property.id}`}
+                      className="property-item"
+                      lines="none"
+                    >
+                      <IonLabel className="property-label">
+                        <h2>{property.title}</h2>
+                        <p>{property.price.toLocaleString("cs")} Kč</p>
+                      </IonLabel>
+                    </IonItem>
                   ))}
                 </>
               )}

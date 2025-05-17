@@ -19,6 +19,7 @@ import {
   IonAlert,
   IonTextarea,
   IonLoading,
+  useIonViewWillEnter,
 } from "@ionic/react";
 import { createProperty } from "../services/propertyService";
 import { useAuth } from "../hooks/useAuth";
@@ -170,6 +171,7 @@ const Create: React.FC = () => {
   const kitchenEquipmentOptions = [
     "Lednice",
     "Sporák",
+    "Indukční deska",
     "Mikrovlnná trouba",
     "Trouba",
     "Myčka",
@@ -247,7 +249,7 @@ const Create: React.FC = () => {
       await hapticsMedium();
       setLoading(false);
       showToast("Inzerát byl úspěšně vytvořen!", 1500);
-      setTimeout(() => history.push(`/details/${propertyId}`), 750);
+      setTimeout(() => history.push(`/details/${propertyId}`), 500);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
@@ -260,6 +262,37 @@ const Create: React.FC = () => {
       }
     }
   };
+
+  useIonViewWillEnter(() => {
+    setTitle("");
+    setPrice("");
+    setAddress("");
+    setCity("");
+    setType("");
+    setDisposition("");
+    setGarage(false);
+    setElevator(false);
+    setGasConnection(false);
+    setThreePhaseElectricity(false);
+    setBasement(false);
+    setFurnished(false);
+    setBalcony(false);
+    setGarden(false);
+    setSolarPanels(false);
+    setPool(false);
+    setYearBuilt(0);
+    setFloors(1);
+    setBathroomCount(1);
+    setGardenSize("");
+    setPropertySize("");
+    setParkingSpots(0);
+    setRooms(1);
+    setDescription("");
+    setKitchenEquipment([]);
+    setHeatingType("");
+    setPostalCode("");
+    setImages([]);
+  });
 
   return (
     <IonPage className="create-page">
@@ -283,6 +316,8 @@ const Create: React.FC = () => {
               onChange={setTitle}
               spellCheck
               autoCorrect="on"
+              maxlen={100}
+              count
             />
           </IonItem>
           <IonItem lines="none">
@@ -380,7 +415,7 @@ const Create: React.FC = () => {
         </IonItemDivider>
         <IonDatetime
           presentation="year"
-          min="1800"
+          min="1600"
           onIonChange={(e) => {
             const date = new Date(
               Array.isArray(e.detail.value)

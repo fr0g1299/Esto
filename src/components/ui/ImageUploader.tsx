@@ -132,6 +132,7 @@ const ImageUploader: React.FC<Props> = ({
       urlsToRevoke.forEach((_, file) => newUrls.delete(file));
       return newUrls;
     });
+    //eslint-disable-next-line
   }, [images]);
 
   const handleDragStart = () => {

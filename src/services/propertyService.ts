@@ -69,6 +69,13 @@ interface UploadedImage {
   sortOrder?: number;
 }
 
+interface NotificationProps {
+  id: string;
+  title: string;
+  price: number;
+  createdAt: string;
+}
+
 const uploadImage = async (file: File, propertyId: string): Promise<string> => {
   const options = {
     maxSizeMB: 5,
@@ -90,13 +97,30 @@ const uploadImage = async (file: File, propertyId: string): Promise<string> => {
   return downloadUrl;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function trimStringFields<T extends Record<string, any>>(obj: T): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trimmed: any = {};
+  for (const key in obj) {
+    if (typeof obj[key] === "string") {
+      trimmed[key] = obj[key].trim();
+    } else {
+      trimmed[key] = obj[key];
+    }
+  }
+  return trimmed as T;
+}
+
 export const createProperty = async (
   propertyData: Omit<Property, "createdAt" | "updatedAt" | "imageUrl">,
   detailsData: PropertyDetails,
   imageFiles: File[]
 ) => {
+  const trimmedPropertyData = trimStringFields(propertyData);
+  const trimmedDetailsData = trimStringFields(detailsData);
+
   const propertyRef = await addDoc(collection(db, "properties"), {
-    ...propertyData,
+    ...trimmedPropertyData,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -105,7 +129,7 @@ export const createProperty = async (
 
   await setDoc(
     doc(db, "properties", propertyId, "details", "data"),
-    detailsData
+    trimmedDetailsData
   );
 
   const uploadedImageUrls = await Promise.all(
@@ -174,26 +198,29 @@ export const updateProperty = async (
 ) => {
   const propertyRef = doc(db, "properties", propertyId);
 
+  const trimmedPropertyData = trimStringFields(propertyData);
+  const trimmedDetailsData = trimStringFields(detailsData);
+
   const prevSnapshot = await getDoc(propertyRef);
   const previousPrice = prevSnapshot.data()?.price;
 
   if (
     previousPrice &&
-    propertyData.price != null &&
-    propertyData.price < previousPrice
+    trimmedPropertyData.price != null &&
+    trimmedPropertyData.price < previousPrice
   ) {
-    await sendPriceDropNotification(propertyId, propertyData.price);
+    await sendPriceDropNotification(propertyId, trimmedPropertyData.price);
   }
 
   await updateDoc(propertyRef, {
-    ...propertyData,
+    ...trimmedPropertyData,
     updatedAt: serverTimestamp(),
   });
 
   // Update the details document if provided
-  if (detailsData) {
+  if (trimmedDetailsData) {
     const detailsRef = doc(db, "properties", propertyId, "details", "data");
-    await updateDoc(detailsRef, detailsData);
+    await updateDoc(detailsRef, trimmedDetailsData);
   }
 
   const imageCollectionRef = collection(db, `properties/${propertyId}/images`);
@@ -254,4 +281,19 @@ export const updateProperty = async (
   }
 
   return propertyId;
+};
+
+// Get all properties with enabled notifications
+export const getNotificationProperties = async (
+  userId: string
+): Promise<NotificationProps[]> => {
+  const snapshot = await getDocs(
+    collection(db, "users", userId, "notificationsPreferences")
+  );
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    title: doc.data().title,
+    price: doc.data().price,
+    createdAt: doc.data().createdAt,
+  }));
 };

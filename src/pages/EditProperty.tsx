@@ -197,6 +197,7 @@ const EditProperty: React.FC = () => {
   const kitchenEquipmentOptions = [
     "Lednice",
     "Sporák",
+    "Indukční deska",
     "Mikrovlnná trouba",
     "Trouba",
     "Myčka",
@@ -321,7 +322,7 @@ const EditProperty: React.FC = () => {
       await hapticsMedium();
       setLoading(false);
       showToast("Inzerát byl úspěšně upraven!", 1500);
-      setTimeout(() => history.push(`/details/${propertyId}`), 1500);
+      setTimeout(() => history.push(`/details/${propertyId}`), 500);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
@@ -357,7 +358,7 @@ const EditProperty: React.FC = () => {
 
     await hapticsHeavy();
     showToast("Inzerát byl úspěšně smazán!", 3000);
-    setTimeout(() => history.replace("/"), 1000);
+    setTimeout(() => history.replace("/"), 500);
   };
 
   return (
@@ -405,6 +406,8 @@ const EditProperty: React.FC = () => {
                   onChange={setTitle}
                   spellCheck
                   autoCorrect="on"
+                  maxlen={100}
+                  count
                 />
               </IonItem>
               <IonItem lines="none">
@@ -506,7 +509,7 @@ const EditProperty: React.FC = () => {
             </IonItemDivider>
             <IonDatetime
               presentation="year"
-              min="1800"
+              min="1600"
               value={yearBuilt.toString()}
               onIonChange={(e) => {
                 const date = new Date(

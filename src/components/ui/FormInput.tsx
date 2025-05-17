@@ -10,7 +10,9 @@ interface Props<T extends string | number> {
   autoCorrect?: "on" | "off";
   onChange: (val: T) => void;
   disabled?: boolean;
-  filter?: (value: string) => string; // For future use
+  filter?: (value: string) => string;
+  maxlen?: number;
+  count?: boolean;
   // filter={(value) => value.replace(/[^a-zA-Z]/g, "")}
 }
 
@@ -24,6 +26,8 @@ function FormInput<T extends string | number>({
   autoCorrect = "off",
   disabled,
   filter,
+  maxlen = undefined,
+  count = false,
 }: Props<T>) {
   const ionInputEl = useRef<HTMLIonInputElement>(null);
 
@@ -32,10 +36,6 @@ function FormInput<T extends string | number>({
 
     if (filter) {
       inputValue = filter(String(inputValue));
-    }
-
-    if (typeof inputValue === "string") {
-      inputValue = inputValue.trim();
     }
 
     onChange(type === "number" ? (Number(inputValue) as T) : (inputValue as T));
@@ -58,6 +58,8 @@ function FormInput<T extends string | number>({
       autoCorrect={autoCorrect}
       spellcheck={spellCheck}
       ref={ionInputEl}
+      maxlength={maxlen ? maxlen : undefined}
+      counter={count}
       onIonInput={handleInput}
     >
       {type === "password" && (

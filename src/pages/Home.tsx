@@ -16,10 +16,10 @@ import {
   IonButtons,
   IonCardSubtitle,
   IonSkeletonText,
-  useIonViewDidEnter,
   IonItemDivider,
+  useIonViewWillEnter,
 } from "@ionic/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { notificationsOutline, add } from "ionicons/icons";
 import "../styles/Home.css";
 import { useHistory } from "react-router";
@@ -40,7 +40,6 @@ import { Autoplay, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import { useAuth } from "../hooks/useAuth";
-import { hapticsLight } from "../services/haptics";
 import { useStorage } from "../hooks/useStorage";
 import { Network } from "@capacitor/network";
 
@@ -127,6 +126,7 @@ const Home: React.FC = () => {
     []
   );
   const [isOnline, setIsOnline] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -139,6 +139,23 @@ const Home: React.FC = () => {
     );
 
     checkStatus();
+  }, []);
+
+  const getNotificationSize = useCallback(async () => {
+    if (!user) return;
+
+    const unreadQuery = query(
+      collection(db, "users", user.uid, "notifications"),
+      where("isRead", "==", false)
+    );
+
+    const snapshot = await getDocs(unreadQuery);
+    setUnreadCount(snapshot.size); // For future use, right now size color is transparent
+  }, [user]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLogin(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -177,24 +194,11 @@ const Home: React.FC = () => {
 
     fetchData();
     getNotificationSize();
-    // eslint-disable-next-line
-  }, [isOnline, ready, get]);
+  }, [isOnline, ready, get, getNotificationSize]);
 
-  useIonViewDidEnter(() => {
+  useIonViewWillEnter(() => {
     getNotificationSize();
   }, [user]);
-
-  const getNotificationSize = async () => {
-    if (!user) return;
-
-    const unreadQuery = query(
-      collection(db, "users", user.uid, "notifications"),
-      where("isRead", "==", false)
-    );
-
-    const snapshot = await getDocs(unreadQuery);
-    setUnreadCount(snapshot.size); // For future use, right now size color is transparent
-  };
 
   if (!isOnline) {
     return (
@@ -295,7 +299,7 @@ const Home: React.FC = () => {
                   className="create-btn icon-shadow no-ripple"
                   onClick={() => history.push("/create")}
                 >
-                  <IonIcon icon={add} size="large" />
+                  <IonIcon icon={add} className="icon" />
                 </IonButton>
                 <IonButton
                   fill="clear"
@@ -308,17 +312,14 @@ const Home: React.FC = () => {
                         0
                       </IonBadge>
                     )}
-                    <IonIcon icon={notificationsOutline} size="large" />
+                    <IonIcon icon={notificationsOutline} className="icon" />
                   </div>
                 </IonButton>
               </IonCol>
             ) : (
               <a
-                className="login"
-                onClick={async () => {
-                  await hapticsLight();
-                  history.push("/login");
-                }}
+                className={`login${showLogin ? " visible" : ""}`}
+                onClick={async () => history.push("/login")}
               >
                 Přihlásit se
               </a>
