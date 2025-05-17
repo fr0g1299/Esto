@@ -10,7 +10,7 @@ import {
   IonLabel,
 } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStorage } from "./hooks/useStorage";
 import Home from "./pages/Home";
 import SearchMap from "./pages/SearchMap";
@@ -81,6 +81,22 @@ setupIonicReact();
 const App: React.FC = () => {
   const { get, ready } = useStorage();
   const { user } = useAuth();
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   useEffect(() => {
     if (Capacitor.getPlatform() !== "web") {
       ScreenOrientation.lock({ orientation: "portrait" });
@@ -93,6 +109,14 @@ const App: React.FC = () => {
       const storedTheme = await get("darkTheme");
       const darkTheme = storedTheme !== null ? storedTheme : false;
       document.documentElement.classList.toggle("ion-palette-dark", darkTheme);
+
+      if (Capacitor.getPlatform() !== "web") {
+        if (darkTheme) {
+          StatusBar.setStyle({ style: Style.Dark });
+        } else {
+          StatusBar.setStyle({ style: Style.Light });
+        }
+      }
     };
 
     const setSafeArea = async () => {
@@ -232,14 +256,23 @@ const App: React.FC = () => {
                 <IonLabel>Domů</IonLabel>
               </IonTabButton>
 
-              <IonTabButton tab="searchmap" href="/searchmap">
+              <IonTabButton
+                tab="searchmap"
+                href="/searchmap"
+                disabled={!isOnline}
+              >
                 <IonIcon icon={mapOutline} />
                 <IonLabel>Mapa</IonLabel>
               </IonTabButton>
-              <IonTabButton tab="search" href="/search" className="no-ripple">
+              <IonTabButton
+                tab="search"
+                href="/search"
+                className="no-ripple"
+                disabled={!isOnline}
+              >
                 <div className="place">
                   <RippleButton
-                    icon={<IonIcon icon={search} className="text-2xl" />}
+                    icon={<IonIcon icon={search} />}
                     className="custom-ripple-btn"
                   />
                   <div className="dots">
@@ -250,12 +283,20 @@ const App: React.FC = () => {
                 <IonLabel className="search-label">Hledat</IonLabel>
               </IonTabButton>
 
-              <IonTabButton tab="collections" href="/collections">
+              <IonTabButton
+                tab="collections"
+                href="/collections"
+                disabled={!isOnline}
+              >
                 <IonIcon icon={albums} />
-                <IonLabel>Kolekce</IonLabel>
+                <IonLabel>Přehled</IonLabel>
               </IonTabButton>
 
-              <IonTabButton tab="settings" href="/settings">
+              <IonTabButton
+                tab="settings"
+                href="/settings"
+                disabled={!isOnline}
+              >
                 <IonIcon icon={settings} />
                 <IonLabel>Nastavení</IonLabel>
               </IonTabButton>

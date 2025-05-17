@@ -18,12 +18,16 @@ import {
   IonSkeletonText,
   IonItemDivider,
   useIonViewWillEnter,
+  IonRefresher,
+  IonRefresherContent,
+  useIonToast,
 } from "@ionic/react";
 import { useCallback, useEffect, useState } from "react";
-import { notificationsOutline, add } from "ionicons/icons";
+import { notificationsOutline, add, refresh } from "ionicons/icons";
 import "../styles/Home.css";
 import { useHistory } from "react-router";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import { RefresherEventDetail } from "@ionic/core";
 
 import { db } from "../firebase";
 import {
@@ -113,6 +117,7 @@ const Home: React.FC = () => {
   const { user } = useAuth();
   const history = useHistory();
   useTabBarScrollEffect();
+  const [showToast] = useIonToast();
   const [loading, setLoading] = useState(true);
   const [trendingProperties, setTrendingProperties] = useState<
     TrendingProperty[]
@@ -121,7 +126,7 @@ const Home: React.FC = () => {
     []
   );
   const [unreadCount, setUnreadCount] = useState(0);
-  const { get, ready } = useStorage();
+  const { get } = useStorage();
   const [offlineProperties, setOfflineProperties] = useState<OfflineProperty[]>(
     []
   );
@@ -158,43 +163,43 @@ const Home: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (isOnline) {
-          // Fetch from Firestore
-          const trending = await fetchTrendingProperties();
-          const newest = await fetchNewestProperties();
-          setTrendingProperties(trending);
-          setNewestProperties(newest);
-
-          // Show the ion-tabbar
-          const tabBar = document.querySelector("ion-tab-bar");
-          if (tabBar) {
-            tabBar.style.display = "flex";
-          }
-        } else {
-          // Load from local storage
-          const offlineData = await get("properties");
-          if (offlineData) setOfflineProperties(offlineData);
-          console.log("Offline data loaded:", offlineData);
-
-          // Hide the ion-tabbar
-          const tabBar = document.querySelector("ion-tab-bar");
-          if (tabBar) {
-            tabBar.style.display = "none";
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching properties:", error);
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async () => {
+    try {
+      if (isOnline) {
+        // Fetch from Firestore
+        const trending = await fetchTrendingProperties();
+        const newest = await fetchNewestProperties();
+        setTrendingProperties(trending);
+        setNewestProperties(newest);
+      } else {
+        // Load from local storage
+        const offlineData = await get("properties");
+        if (offlineData) setOfflineProperties(offlineData);
+        console.log("Offline data loaded:", offlineData);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [isOnline, get]);
 
+  useEffect(() => {
     fetchData();
     getNotificationSize();
-  }, [isOnline, ready, get, getNotificationSize]);
+  }, [fetchData, getNotificationSize]);
+
+  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    if (!isOnline) {
+      showToast("Nelze obnovit v offline režimu", 1500);
+      event.detail.complete();
+      return;
+    }
+    setLoading(true);
+    await fetchData();
+    await getNotificationSize();
+    event.detail.complete();
+  };
 
   useIonViewWillEnter(() => {
     getNotificationSize();
@@ -281,6 +286,20 @@ const Home: React.FC = () => {
   return (
     <IonPage className="home-page">
       <IonContent fullscreen scrollEvents>
+        <IonRefresher
+          slot="fixed"
+          onIonRefresh={handleRefresh}
+          pullMin={100}
+          disabled={loading || !isOnline}
+          pullMax={200}
+        >
+          <IonRefresherContent
+            pullingIcon={refresh}
+            pullingText="Stáhněte pro obnovení"
+            refreshingSpinner="crescent"
+            refreshingText="Obnovuji..."
+          />
+        </IonRefresher>
         <IonGrid>
           <IonRow className="ion-align-items-center ion-justify-content-between ion-padding-horizontal">
             <IonCol size="auto">

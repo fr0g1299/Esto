@@ -20,9 +20,13 @@ import {
   IonCardContent,
   IonChip,
   useIonToast,
+  IonRefresher,
+  IonRefresherContent,
+  RefresherEventDetail,
+  useIonViewWillEnter,
 } from "@ionic/react";
 import { useParams } from "react-router";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   doc,
   getDoc,
@@ -33,6 +37,7 @@ import {
   updateDoc,
   setDoc,
   Timestamp,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useHistory } from "react-router";
@@ -54,6 +59,7 @@ import {
   eyeOutline,
   createOutline,
   cloudDownloadOutline,
+  refresh,
 } from "ionicons/icons";
 
 import { EffectFade, Autoplay } from "swiper/modules";
@@ -76,6 +82,7 @@ import { Share } from "@capacitor/share";
 import { getOrCreateChat } from "../services/chatService";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import { hapticsLight } from "../services/haptics";
+import { getNotificationProperties } from "../services/propertyService";
 
 interface RouteParams {
   propertyId: string;
@@ -153,6 +160,7 @@ const incrementViews = async (id: string) => {
     await updateDoc(docRef, {
       views: increment(1),
     });
+    console.log("Views incremented successfully");
   } catch (error) {
     console.error("Failed to increment views:", error);
   }
@@ -186,8 +194,10 @@ const PropertyDetails: React.FC = () => {
     { label: string; value: boolean | undefined }[]
   >([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(
+    async (refresh: boolean = false) => {
+      if (!propertyId) return;
+      if (!user) return;
       //TODO: clean this up into a service
       const propertyDoc = await getDoc(doc(db, "properties", propertyId));
       if (!propertyDoc.exists()) {
@@ -242,32 +252,39 @@ const PropertyDetails: React.FC = () => {
           .map((doc) => doc.data() as PropertyImages)
           .sort((a, b) => a.sortOrder - b.sortOrder)
       );
-      incrementViews(propertyId);
+      if (!refresh) {
+        await incrementViews(propertyId);
+      }
 
       if (!user) return;
 
       const isFav = await isPropertyFavorited(user.uid, propertyId);
       setIsFavorite(isFav);
-      console.log(user?.uid);
-    };
+    },
+    [propertyId, history, user]
+  );
 
+  useEffect(() => {
     const checkNotificationPref = async () => {
       if (!user) return;
-      const prefDoc = await getDoc(
-        doc(db, "users", user.uid, "notificationsPreferences", propertyId)
-      );
+      const prop = await getNotificationProperties(user.uid);
 
-      if (prefDoc.exists() && prefDoc.data().notifyOnPriceDrop) {
-        setNotificationsEnabled(true);
+      const propertyIds = prop.map((p) => p.id);
+      if (!propertyIds.includes(propertyId)) {
+        setNotificationsEnabled(false);
+        return;
       }
+      setNotificationsEnabled(true);
     };
 
     const notificationsEnabled = async () => {
+      if (!ready) return;
       const { value } = await Preferences.get({ key: "pushEnabled" });
       setPushEnabled(value === "true");
     };
 
     const checkIfSaved = async () => {
+      if (!ready) return;
       const savedProperties = (await get("properties")) || [];
       const isSaved = savedProperties.some(
         (savedProperty: Property) => savedProperty.propertyId === propertyId
@@ -275,21 +292,20 @@ const PropertyDetails: React.FC = () => {
       setIsSavedOffline(isSaved);
     };
 
-    console.log("Fetching data for property ID:", propertyId);
-    console.log("Property ID:", propertyId);
-
-    fetchData();
-    notificationsEnabled();
     checkNotificationPref();
+    notificationsEnabled();
     checkIfSaved();
-  }, [propertyId, user, history, get]);
+  }, [propertyId, user, history, get, ready]);
+
+  useIonViewWillEnter(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (!property) return;
     const saveToViewedHistory = async () => {
       const { title, price, imageUrl } = property;
       const minimalProperty = { propertyId, title, price, imageUrl };
-      console.log("id:", propertyId);
 
       const viewedHistory: (typeof minimalProperty)[] =
         (await get("viewedHistory")) || [];
@@ -329,21 +345,37 @@ const PropertyDetails: React.FC = () => {
 
   const handleNotification = async () => {
     if (!user?.uid || !propertyId) return;
+    if (!property) return;
 
     try {
-      const notificationPreference = {
-        notifyOnPriceDrop: true,
-        createdAt: new Date(),
-      };
+      if (!notificationsEnabled) {
+        const notificationPreference = {
+          notifyOnPriceDrop: true,
+          title: property.title,
+          price: property.price,
+          createdAt: new Date(),
+        };
 
-      await setDoc(
-        doc(db, "users", user.uid, "notificationsPreferences", propertyId),
-        notificationPreference
-      );
+        await setDoc(
+          doc(db, "users", user.uid, "notificationsPreferences", propertyId),
+          notificationPreference
+        );
 
-      setNotificationsEnabled(!notificationsEnabled);
+        setNotificationsEnabled(!notificationsEnabled);
+        showToast(
+          "Nyní budete upozorněni na snížení ceny této nemovitosti.",
+          2500
+        );
 
-      console.log("Notification preference saved successfully.");
+        console.log("Notification preference saved successfully.");
+      } else {
+        await deleteDoc(
+          doc(db, "users", user.uid, "notificationsPreferences", propertyId)
+        );
+
+        setNotificationsEnabled(!notificationsEnabled);
+        showToast("Upozornění na snížení ceny bylo zrušeno.", 2500);
+      }
     } catch (error) {
       console.error("Failed to save notification preference:", error);
     }
@@ -378,6 +410,11 @@ const PropertyDetails: React.FC = () => {
 
     showToast("Nemovitost byla uložena offline", 2500);
     setIsSavedOffline(true);
+  };
+
+  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    fetchData(true);
+    event.detail.complete();
   };
 
   if (!property || !details)
@@ -645,6 +682,19 @@ const PropertyDetails: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen scrollEvents>
+        <IonRefresher
+          slot="fixed"
+          onIonRefresh={handleRefresh}
+          pullMin={100}
+          pullMax={200}
+        >
+          <IonRefresherContent
+            pullingIcon={refresh}
+            pullingText="Stáhněte pro obnovení"
+            refreshingSpinner="crescent"
+            refreshingText="Obnovuji..."
+          />
+        </IonRefresher>
         <div className="swiper-container">
           <Swiper
             {...slideOpts}
@@ -760,14 +810,16 @@ const PropertyDetails: React.FC = () => {
                   ))}
                 </IonRow>
               </IonGrid>
-              <div className="kitchen-equipment">
-                <h3 className="section-subtitle">Kuchyňské vybavení:</h3>
-                <ul className="list-disc bolder-content">
-                  {details.kitchenEquipment.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
+              {details.kitchenEquipment.length > 0 && (
+                <div className="kitchen-equipment">
+                  <h3 className="section-subtitle">Kuchyňské vybavení:</h3>
+                  <ul className="list-disc bolder-content">
+                    {details.kitchenEquipment.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </IonCardContent>
           </IonCard>
 

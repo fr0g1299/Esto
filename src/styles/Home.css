@@ -18,8 +18,13 @@
     color: transparent;
     z-index: 1;
   }
+
   .create-btn {
     --padding-end: 5px;
+  }
+
+  .icon {
+    font-size: 27px;
   }
 
   .no-ripple {
@@ -95,10 +100,20 @@
   .icon-shadow {
     filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
   }
+
   .login {
+    opacity: 0;
+    transition: opacity 0.4s;
+    transition-delay: 0s;
     color: var(--ion-color-primary);
     font-weight: 500;
     margin-left: auto;
     text-decoration: none;
+  }
+
+  .login.visible {
+    opacity: 1;
+    transition: opacity 0.4s;
+    transition-delay: 0.4s;
   }
 }
