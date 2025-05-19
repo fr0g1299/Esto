@@ -44,7 +44,7 @@ import { useStorage } from "../hooks/useStorage";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
 import { geocodeAddress } from "../services/geocodingService";
-import { hapticsHeavy, hapticsMedium } from "../services/haptics";
+import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
 
 interface RouteParams {
   propertyId: string;
@@ -264,7 +264,6 @@ const EditProperty: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    setLoading(true);
 
     if (!garden) {
       setGardenSize("");
@@ -273,8 +272,17 @@ const EditProperty: React.FC = () => {
       showToast("Musíte vybrat typ nemovitosti.", 2500);
       return;
     }
+    if (price > 99999999) {
+      showToast("Cena nemůže být větší než 99 999 999 Kč.", 2500);
+      return;
+    }
+    if (description.length < 20) {
+      showToast("Popis musí být delší.", 2500);
+      return;
+    }
 
     try {
+      setLoading(true);
       const { latitude, longitude } = await geocodeAddress(address);
 
       await updateProperty(
@@ -528,6 +536,8 @@ const EditProperty: React.FC = () => {
               <IonTextarea
                 color="primary"
                 placeholder="Popis nemovitosti"
+                counter
+                maxlength={3500}
                 value={description}
                 onIonInput={(e) => setDescription(e.detail.value!.trim())}
                 autoGrow
@@ -646,7 +656,10 @@ const EditProperty: React.FC = () => {
                   checked={availability}
                   style={{ "--size": "20px" }}
                   helperText="Zaškrtněte, pokud je nemovitost dostupná, odškrtněte, pokud je prodaná/zamluvená"
-                  onIonChange={(e) => setAvailability(e.detail.value)}
+                  onIonChange={(e) => {
+                    hapticsLight();
+                    setAvailability(e.detail.value);
+                  }}
                 >
                   <strong>Stav:</strong>
                 </IonCheckbox>
@@ -656,6 +669,7 @@ const EditProperty: React.FC = () => {
             <IonButton
               id="save-alert"
               expand="block"
+              className="ion-margin-bottom"
               disabled={
                 images.length < 3 ||
                 !title ||

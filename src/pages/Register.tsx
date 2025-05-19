@@ -108,13 +108,6 @@ const Register: React.FC = () => {
   }, [password, confirmPassword, username, phone, firstName, lastName]);
 
   const handleValidation = () => {
-    const results = {
-      isUserNameValid: !!username,
-      isPhoneValid: !!phone,
-      isFirstNameValid: !!firstName,
-      isLastNameValid: !!lastName,
-    };
-
     if (!username) {
       setUsernameMessage("Uživatelské jméno je povinné");
       hapticsHeavy();
@@ -122,8 +115,10 @@ const Register: React.FC = () => {
     } else {
       setIsUserNameValid(true);
     }
-    if (phone !== "+420") {
-      //TODO test
+    if (phone === "+420") {
+      hapticsHeavy();
+      setIsPhoneValid(false);
+    } else if (phone.length < 16) {
       hapticsHeavy();
       setIsPhoneValid(false);
     } else {
@@ -141,15 +136,12 @@ const Register: React.FC = () => {
     } else {
       setIsLastNameValid(true);
     }
-
-    return results;
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { isUserNameValid, isPhoneValid, isFirstNameValid, isLastNameValid } =
-      handleValidation();
+    handleValidation();
 
     if (
       !isEmailValid ||
@@ -317,7 +309,14 @@ const Register: React.FC = () => {
                 id="first-name"
                 type="text"
                 placeholder="Zadejte své křestní jméno"
-                onIonInput={(e) => setFirstName(e.detail.value!.trim())}
+                onIonInput={(e) => {
+                  const filtered = e.detail.value!.replace(
+                    /[^a-záčďéěíňóřšťúůýžA-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g,
+                    ""
+                  );
+                  setFirstName(filtered.trim());
+                  e.target.value = filtered;
+                }}
                 required
                 fill="outline"
                 label="Křestní jméno"
@@ -332,7 +331,14 @@ const Register: React.FC = () => {
                 id="last-name"
                 type="text"
                 placeholder="Zadejte své příjmení"
-                onIonInput={(e) => setLastName(e.detail.value!.trim())}
+                onIonInput={(e) => {
+                  const filtered = e.detail.value!.replace(
+                    /[^a-záčďéěíňóřšťúůýžA-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g,
+                    ""
+                  );
+                  setLastName(filtered.trim());
+                  e.target.value = filtered;
+                }}
                 required
                 fill="outline"
                 label="Příjmení"

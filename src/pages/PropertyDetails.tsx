@@ -197,7 +197,6 @@ const PropertyDetails: React.FC = () => {
   const fetchData = useCallback(
     async (refresh: boolean = false) => {
       if (!propertyId) return;
-      if (!user) return;
       //TODO: clean this up into a service
       const propertyDoc = await getDoc(doc(db, "properties", propertyId));
       if (!propertyDoc.exists()) {

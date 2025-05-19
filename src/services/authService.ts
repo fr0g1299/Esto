@@ -51,7 +51,11 @@ export const registerUser = async (
       const data = result.data as { isTaken: boolean };
       console.log("Username check result:", data);
       if (data.isTaken) {
-        throw new Error("auth/username-taken");
+        const error = new Error("Username is already taken") as Error & {
+          code?: string;
+        };
+        error.code = "auth/username-taken";
+        throw error;
       }
     } catch (error) {
       console.error("Error during username check:", error);

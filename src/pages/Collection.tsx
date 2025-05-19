@@ -620,12 +620,12 @@ const Collection: React.FC = () => {
 
           <IonAccordion value="userListings" disabled={!user} toggleIcon="">
             <IonItem routerLink="/userListings" slot="header">
-              <IonLabel>Moje inzeráty</IonLabel>
+              <IonLabel>Mé inzeráty</IonLabel>
             </IonItem>
           </IonAccordion>
           <IonAccordion value="chats" disabled={!user} toggleIcon="">
             <IonItem routerLink="/chats" slot="header">
-              <IonLabel>Moje zprávy</IonLabel>
+              <IonLabel>Mé zprávy</IonLabel>
             </IonItem>
           </IonAccordion>
         </IonAccordionGroup>

@@ -1,7 +1,7 @@
 {
   "name": "esto",
   "private": true,
-  "version": "1.4.31",
+  "version": "1.4.37",
   "type": "module",
   "scripts": {
     "dev": "vite",

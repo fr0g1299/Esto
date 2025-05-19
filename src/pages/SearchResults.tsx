@@ -244,13 +244,15 @@ const SearchResults: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton></IonBackButton>
           </IonButtons>
-          <IonButtons slot="end" style={{ paddingRight: "15px" }}>
-            <IonIcon
-              icon={mapOutline}
-              slot="icon-only"
-              onClick={() => history.push("/searchmap", { properties })}
-            />
-          </IonButtons>
+          {properties.length != 0 && (
+            <IonButtons slot="end" style={{ paddingRight: "15px" }}>
+              <IonIcon
+                icon={mapOutline}
+                slot="icon-only"
+                onClick={() => history.push("/searchmap", { properties })}
+              />
+            </IonButtons>
+          )}
           <IonButtons slot="end" style={{ paddingRight: "15px" }}>
             <IonIcon
               icon={starOutline}

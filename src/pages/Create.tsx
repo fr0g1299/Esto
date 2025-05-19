@@ -195,18 +195,25 @@ const Create: React.FC = () => {
       showToast("Musíte vybrat alespoň 3 obrázky.", 2500);
       return;
     }
+    if (!garden) {
+      setGardenSize("");
+    }
+    if (type === "") {
+      showToast("Musíte vybrat typ nemovitosti.", 2500);
+      return;
+    }
+    if (price > 99999999) {
+      showToast("Cena nemůže být větší než 99 999 999 Kč.", 2500);
+      return;
+    }
+    if (description.length < 20) {
+      showToast("Popis musí být delší.", 2500);
+      return;
+    }
 
     try {
-      const { latitude, longitude } = await geocodeAddress(address);
-
-      if (!garden) {
-        setGardenSize("");
-      }
-      if (type === "") {
-        showToast("Musíte vybrat typ nemovitosti.", 2500);
-        return;
-      }
       setLoading(true);
+      const { latitude, longitude } = await geocodeAddress(address);
 
       const propertyId = await createProperty(
         {
@@ -433,6 +440,8 @@ const Create: React.FC = () => {
           <IonTextarea
             color="primary"
             placeholder="Popis nemovitosti"
+            counter
+            maxlength={3500}
             value={description}
             onIonInput={(e) => setDescription(e.detail.value!.trim())}
             autoGrow
@@ -543,6 +552,7 @@ const Create: React.FC = () => {
 
         <IonButton
           expand="block"
+          className="ion-margin-bottom"
           onClick={handleCreate}
           disabled={
             images.length < 3 ||

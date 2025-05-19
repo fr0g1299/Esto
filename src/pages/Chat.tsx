@@ -60,6 +60,15 @@ const Chat: React.FC = () => {
     return () => unsubscribe();
   }, [chatId]);
 
+  useEffect(() => {
+    if (!propertyId) {
+      const timeout = setTimeout(() => {
+        history.replace("/not-found");
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [propertyId, history]);
+
   // Auto-scroll when new messages arrive
   useEffect(() => {
     console.log(propertyId);
@@ -112,7 +121,7 @@ const Chat: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonBackButton></IonBackButton>
+            <IonBackButton defaultHref="/chats"></IonBackButton>
           </IonButtons>
           <IonTitle>
             {userContact?.firstName} {userContact?.lastName}

@@ -15,6 +15,7 @@ import {
   useIonToast,
   IonAlert,
   IonImg,
+  IonLoading,
 } from "@ionic/react";
 import { useStorage } from "../hooks/useStorage";
 import { useEffect, useRef, useState } from "react";
@@ -45,7 +46,7 @@ const Settings: React.FC = () => {
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const modal = useRef<HTMLIonModalElement>(null);
-  const [pushEnabled, setPushEnabled] = useState<boolean>(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(true);
   const [oldPassword, setOldPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -54,6 +55,7 @@ const Settings: React.FC = () => {
   const [deleteCheck, setDeleteCheck] = useState<string>("");
   const [saveButtonMessage, setSaveButtonMessage] = useState("");
   const [showToast] = useIonToast();
+  const [loading, setLoading] = useState(false);
 
   const phoneMaskOptions: MaskitoOptions = {
     mask: [
@@ -94,6 +96,16 @@ const Settings: React.FC = () => {
       setIsDarkTheme(darkTheme);
       document.documentElement.classList.toggle("ion-palette-dark", darkTheme);
     };
+
+    const loadInitialPushPreference = async () => {
+      if (!user) return;
+      const { value } = await Preferences.get({ key: "pushEnabled" });
+      if (value !== null) {
+        setPushEnabled(value === "true");
+      }
+    };
+
+    loadInitialPushPreference();
 
     applyInitialTheme();
   }, [ready, get, user]);
@@ -220,10 +232,13 @@ const Settings: React.FC = () => {
 
   const handleDeleteAccount = async (password: string) => {
     try {
+      if (!user) return;
+      setLoading(true);
       await deleteUserAccount(password);
       await set("viewedHistory", []);
 
       await hapticsLight();
+      setLoading(false);
       showToast("Váš účet byl úspěšně smazán", 2500);
       history.push("/home");
       // eslint-disable-next-line
@@ -232,13 +247,16 @@ const Settings: React.FC = () => {
         case "auth/user-not-found":
           await hapticsHeavy();
           showToast("Uživatel s tímto emailem neexistuje.", 2500);
+          setLoading(false);
           break;
         case "auth/wrong-password":
           await hapticsHeavy();
           showToast("Zadané heslo je nesprávné.", 2500);
+          setLoading(false);
           break;
         default:
           console.error("Error authenticating in user:", error);
+          setLoading(false);
       }
     }
   };
@@ -517,6 +535,11 @@ const Settings: React.FC = () => {
           </IonButton>
         )}
       </IonContent>
+      <IonLoading
+        isOpen={loading}
+        message="Mazání probíhá..."
+        spinner="crescent"
+      />
     </IonPage>
   );
 };
