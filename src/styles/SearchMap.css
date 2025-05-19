@@ -13,6 +13,19 @@
     background-color: var(--ion-background-color);
   }
 
+  .refresh-icon {
+    position: absolute;
+    margin-top: var(--safe-area-inset-top) !important;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background-color: var(--ion-item-background);
+    border-radius: 5px;
+    padding: 2px;
+    color: var(--ion-color-primary);
+    font-size: 30px;
+  }
+
   .popup-title {
     color: var(--ion-text-color);
     font-size: 18px;

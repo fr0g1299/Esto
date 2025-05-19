@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonIcon } from "@ionic/react";
 import { Link, useLocation } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
@@ -9,6 +9,7 @@ import { db } from "../firebase";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
 import "../styles/SearchMap.css";
+import { refresh } from "ionicons/icons";
 
 interface Property {
   id: string;
@@ -70,6 +71,17 @@ const SearchMap: React.FC = () => {
   return (
     <IonPage className="search-map-page">
       <IonContent fullscreen className="no-scrollbar">
+        <IonIcon
+          icon={refresh}
+          onClick={() => {
+            const map = document.querySelector(".map-container");
+            if (map) {
+              window.dispatchEvent(new Event("resize"));
+            }
+          }}
+          className="refresh-icon"
+        />
+
         <MapContainer
           center={[50.0755, 14.4378]}
           zoom={10}

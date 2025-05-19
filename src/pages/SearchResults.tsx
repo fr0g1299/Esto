@@ -329,7 +329,7 @@ const SearchResults: React.FC = () => {
                   <IonCardTitle>{property.title}</IonCardTitle>
                 </IonCardHeader>
                 <IonCardContent>
-                  <strong>{property.price.toLocaleString()} $</strong>
+                  <strong>{property.price.toLocaleString("cs")} Kč</strong>
                 </IonCardContent>
               </IonCard>
             ))}

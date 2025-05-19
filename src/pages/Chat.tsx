@@ -133,7 +133,7 @@ const Chat: React.FC = () => {
               slot="icon-only"
               onClick={() => {
                 document.body.classList.remove("hidden");
-                history.push(`/details/${propertyId}`);
+                history.replace(`/details/${propertyId}`);
               }}
             />
           </IonButtons>
