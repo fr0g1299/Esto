@@ -37,15 +37,6 @@ export const getUserListings = async (userId: string) => {
   }));
 };
 
-export const updateUserNotificationBoolean = async (
-  userId: string,
-  check: boolean
-) => {
-  await updateDoc(doc(db, "users", userId), {
-    pushNotificationsEnabled: check,
-  });
-};
-
 export const getUserDocument = async (userId: string) => {
   const userDoc = await getDoc(doc(db, "users", userId));
 

@@ -135,7 +135,7 @@ const App: React.FC = () => {
     };
 
     const initPushPreference = async () => {
-      const stored = await Preferences.get({ key: "pushNotificationsEnabled" });
+      const stored = await Preferences.get({ key: "pushEnabled" });
 
       if (!stored.value && user) {
         await setNotificationPreference(user.uid, true);

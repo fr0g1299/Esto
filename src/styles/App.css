@@ -1,5 +1,5 @@
 ion-tab-bar {
-  bottom: var(--safe-area-inset-bottom, 20px);
+  bottom: calc(var(--safe-area-inset-bottom, 20px) + 15px);
   position: relative;
   border: 0px;
   --border: none;

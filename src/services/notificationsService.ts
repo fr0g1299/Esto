@@ -24,7 +24,7 @@ export const setNotificationPreference = async (
 
   // Save to local device storage
   await Preferences.set({
-    key: "pushNotificationsEnabled",
+    key: "pushEnabled",
     value: value.toString(),
   });
 };

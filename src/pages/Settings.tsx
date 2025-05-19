@@ -23,7 +23,6 @@ import {
   deleteUserAccount,
   getUserDocument,
   updateUserDocument,
-  updateUserNotificationBoolean,
 } from "../services/userService";
 import { useAuth } from "../hooks/useAuth";
 import { Preferences } from "@capacitor/preferences";
@@ -37,6 +36,7 @@ import { useHistory } from "react-router";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
 import { Capacitor } from "@capacitor/core";
+import { setNotificationPreference } from "../services/notificationsService";
 
 const Settings: React.FC = () => {
   const { user, role } = useAuth();
@@ -149,13 +149,9 @@ const Settings: React.FC = () => {
 
     const newPushEnabled = !pushEnabled;
     setPushEnabled(newPushEnabled);
-    await Preferences.set({
-      key: "pushEnabled",
-      value: newPushEnabled.toString(),
-    });
 
     try {
-      updateUserNotificationBoolean(user.uid, newPushEnabled);
+      setNotificationPreference(user.uid, newPushEnabled);
     } catch (error) {
       console.error("Error updating notification preference:", error);
     }
