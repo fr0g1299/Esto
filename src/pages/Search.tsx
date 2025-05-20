@@ -17,7 +17,7 @@ import { useHistory } from "react-router-dom";
 import "../styles/Search.css";
 import FormInput from "../components/ui/FormInput";
 import ToggleChip from "../components/ui/ToggleChip";
-import { hapticsMedium } from "../services/haptics";
+import { hapticsLight, hapticsMedium } from "../services/haptics";
 
 const Search: React.FC = () => {
   const history = useHistory();
@@ -270,7 +270,10 @@ const Search: React.FC = () => {
               key={label}
               label={label}
               checked={checked}
-              onToggle={() => setter(!checked)}
+              onToggle={() => {
+                hapticsLight();
+                setter(!checked);
+              }}
             />
           ))}
         </div>

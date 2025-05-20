@@ -279,7 +279,7 @@ const Settings: React.FC = () => {
           {user ? (
             <>
               <IonItem id="open-modal" lines="none">
-                <IonLabel>Úprava Profilu</IonLabel>
+                <IonLabel>Správa účtu</IonLabel>
               </IonItem>
               <IonModal
                 ref={modal}
@@ -420,7 +420,7 @@ const Settings: React.FC = () => {
                         labelPlacement="floating"
                         type="text"
                       ></IonInput>
-                      <IonNote>
+                      <IonNote style={{ whiteSpace: "wrap" }}>
                         Pro odemknutí tlačítka napište své&nbsp;
                         <strong>příjmení</strong>
                         &nbsp;do pole výše
@@ -432,7 +432,7 @@ const Settings: React.FC = () => {
                     fill="outline"
                     color="danger"
                     id="delete-alert"
-                    disabled={deleteCheck !== lastName}
+                    disabled={deleteCheck.trim() !== lastName.trim()}
                     style={{ marginTop: "20px" }}
                   >
                     Vymazat účet

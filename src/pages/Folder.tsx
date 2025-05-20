@@ -114,8 +114,6 @@ const Folder: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton></IonBackButton>
           </IonButtons>
-          {properties.length !== 0 && (
-            <>
               {name !== "Oblíbené" && (
                 <>
                   <IonButtons slot="end" style={{ paddingRight: "15px" }}>
@@ -144,8 +142,6 @@ const Folder: React.FC = () => {
                   />
                 </>
               )}
-            </>
-          )}
           <IonTitle>{name}</IonTitle>
         </IonToolbar>
       </IonHeader>

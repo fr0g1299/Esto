@@ -34,7 +34,7 @@ import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import "../styles/CreateAndEdit.css";
 import ImageUploader from "../components/ui/ImageUploader";
 import { useHistory } from "react-router";
-import { hapticsHeavy, hapticsMedium } from "../services/haptics";
+import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
 
 interface UploadedImage {
   imageUrl: string;
@@ -261,9 +261,11 @@ const Create: React.FC = () => {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
           await hapticsHeavy();
+          setLoading(false);
           showToast("Adresa nebyla nalezena.", 2500);
         } else {
           await hapticsHeavy();
+          setLoading(false);
           showToast(error.message, 2500);
         }
       }
@@ -373,7 +375,10 @@ const Create: React.FC = () => {
               key={label}
               label={label}
               checked={checked}
-              onToggle={() => setter(!checked)}
+              onToggle={() => {
+                hapticsLight();
+                setter(!checked);
+              }}
             />
           ))}
         </div>

@@ -66,6 +66,7 @@ const EditProperty: React.FC = () => {
   const history = useHistory();
   useTabBarScrollEffect();
   const [loading, setLoading] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(true);
   const [showToast] = useIonToast();
   const [deleteCheck, setDeleteCheck] = useState<string>("");
 
@@ -282,7 +283,7 @@ const EditProperty: React.FC = () => {
     }
 
     try {
-      setLoading(true);
+      setLoadingButton(true);
       const { latitude, longitude } = await geocodeAddress(address);
 
       await updateProperty(
@@ -328,16 +329,18 @@ const EditProperty: React.FC = () => {
       );
 
       await hapticsMedium();
-      setLoading(false);
+      setLoadingButton(false);
       showToast("Inzerát byl úspěšně upraven!", 1500);
       setTimeout(() => history.push(`/details/${propertyId}`), 500);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "Address not found") {
           await hapticsHeavy();
+          setLoadingButton(false);
           showToast("Adresa nebyla nalezena.", 2500);
         } else {
           await hapticsHeavy();
+          setLoadingButton(false);
           showToast(error.message, 2500);
         }
       }
@@ -346,11 +349,13 @@ const EditProperty: React.FC = () => {
 
   const handleRemove = async () => {
     if (!user) return;
+    setLoadingButton(true);
 
     try {
       const result = await removeProperty({ propertyId });
       console.log("Property deleted:", result.data);
     } catch (error) {
+      setLoadingButton(false);
       console.error("Error deleting property:", error);
     }
 
@@ -365,6 +370,7 @@ const EditProperty: React.FC = () => {
     await set("viewedHistory", updatedHistory);
 
     await hapticsHeavy();
+    setLoadingButton(false);
     showToast("Inzerát byl úspěšně smazán!", 3000);
     setTimeout(() => history.replace("/"), 500);
   };
@@ -468,7 +474,10 @@ const EditProperty: React.FC = () => {
                   key={label}
                   label={label}
                   checked={checked}
-                  onToggle={() => setter(!checked)}
+                  onToggle={() => {
+                    hapticsLight();
+                    setter(!checked);
+                  }}
                 />
               ))}
             </div>
@@ -772,6 +781,11 @@ const EditProperty: React.FC = () => {
           </>
         )}
       </IonContent>
+      <IonLoading
+        isOpen={loadingButton}
+        message="Zpracovávám..."
+        spinner="crescent"
+      />
     </IonPage>
   );
 };
