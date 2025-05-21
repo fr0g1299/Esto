@@ -141,7 +141,7 @@ const Search: React.FC = () => {
     // Remove non-numeric characters and format
     const digitsOnly = raw.replace(/[^0-9]/g, "");
     const capped = digitsOnly.slice(0, 8);
-    const formatted = capped.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const formatted = capped.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
     const numericValue = parseInt(capped, 10);
 
@@ -244,6 +244,11 @@ const Search: React.FC = () => {
             <IonLabel className="ion-margin-end">Od:</IonLabel>
             <IonInput
               type="text"
+              fill="outline"
+              style={{
+                marginRight: "10px",
+                fontSize: "clamp(10px, 3.5vw, 16px)",
+              }}
               ref={ionInputElMinNumber}
               value={minPrice?.toLocaleString("cs")}
               placeholder="0"
@@ -252,6 +257,8 @@ const Search: React.FC = () => {
             <IonLabel className="ion-margin-end">Do:</IonLabel>
             <IonInput
               type="text"
+              fill="outline"
+              style={{ fontSize: "clamp(10px, 3.5vw, 16px)" }}
               ref={ionInputElMaxNumber}
               value={maxPrice?.toLocaleString("cs")}
               placeholder="0"

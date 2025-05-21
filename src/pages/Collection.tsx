@@ -395,7 +395,7 @@ const Collection: React.FC = () => {
               ) : !offlineProperties || offlineProperties.length === 0 ? (
                 <IonItem lines="none" className="property-item">
                   <IonLabel className="property-label">
-                    Nemáte žádnou historii zobrazení.
+                    Nemáte žádné uložené nemovitosti.
                   </IonLabel>
                 </IonItem>
               ) : (
