@@ -22,22 +22,22 @@ Estö is an Android mobile application built for browsing, creating, and managin
 Below are screenshots showcasing Estö's features.
 
 1. **Main Features**  
-   <img src="screenshots/HomePage.png" width="80%" >
+   ![Main Features](screenshots/HomePage.png)
 
    - **Home Screen**: Page showcasing trending and newest listings, with buttons to notifications center and create form.
    - **Create Form**: A form for adding new property listings.
    - **ImageUploader.tsx**: A custom component using [dnd-kit](https://github.com/clauderic/dnd-kit) for drag-and-drop image sorting.
 
 2. **Property Management**  
-   <img src="screenshots/PropertyDetails.png" width="80%" >
+   ![Property Management](screenshots/PropertyDetails.png)
 
    - **Property Details (1)**: Detailed view of the property.
-   - **Property Details (2)**: Additional details showcasing the contact to engage in real-time chat and a minimap.
+   - **Property Details (2)**: Additional details showcasing the contact (with the ability to engage in a chat with the owner) and a minimap.
    - **Favorite Modal**: A modal for adding listings to favorite folders, adding new folders and adding notes to favorite listings.
    - **Edit Property**: A form to edit existing properties.
 
 3. **Map and Search**  
-   <img src="screenshots/Search.png" width="80%" >
+   ![Map and Search](screenshots/Search.png)
 
    - **Leaflet Map**: Displays all listings on an interactive map.
    - **Search Screen**: Interface for entering search criteria.
@@ -45,7 +45,7 @@ Below are screenshots showcasing Estö's features.
    - **Filtered Map**: Map view showing only the listing selected from search results.
 
 4. **Dark Mode**  
-   <img src="screenshots/DarkTheme.png" width="80%" >
+   ![Dark Mode](screenshots/DarkTheme.png)
 
    - **Property Details**: Property view in dark theme.
    - **Overview Section**: User's overview, where he can find his history, downloaded properties, favorite folders, saved filters, properties with notifications enabled. But also his listings and chats he has engaged in.
