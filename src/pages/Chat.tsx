@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
@@ -14,33 +15,22 @@ import {
   IonButtons,
   IonTextarea,
 } from "@ionic/react";
-import { happyOutline, homeOutline, send } from "ionicons/icons";
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
-import { useHistory, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { sendMessage, subscribeToMessages } from "../services/chatService";
 import { Timestamp } from "firebase/firestore";
+import { Message, LocationState } from "../types/interfaces";
+
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import { happyOutline, homeOutline, send } from "ionicons/icons";
 import "../styles/Chat.css";
-
-interface Message {
-  id: string;
-  text: string;
-  senderId: string;
-  timestamp: Timestamp;
-}
-
-interface LocationState {
-  userContact?: {
-    firstName?: string;
-    lastName?: string;
-  };
-  propertyId: string;
-}
 
 const Chat: React.FC = () => {
   const { user } = useAuth();
   const { chatId } = useParams<{ chatId: string }>();
   const history = useHistory();
+  const location = useLocation<LocationState>();
+  const userContact = location.state?.userContact;
+  const propertyId = location.state?.propertyId;
 
   const [emojiPickerTheme, setEmojiPickerTheme] = useState<Theme>(
     "auto" as Theme
@@ -49,9 +39,6 @@ const Chat: React.FC = () => {
   const [newMessage, setNewMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const contentRef = useRef<HTMLIonContentElement>(null);
-  const location = useLocation<LocationState>();
-  const userContact = location.state?.userContact;
-  const propertyId = location.state?.propertyId;
 
   // Subscribe to messages in this chat
   useEffect(() => {

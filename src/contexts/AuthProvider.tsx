@@ -1,7 +1,8 @@
 import { useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../firebase";
-import { AuthContext } from "./AuthContext";
+import { onAuthStateChanged, User } from "firebase/auth";
+
+import { db } from "../firebase";
 import {
   doc,
   updateDoc,
@@ -9,9 +10,10 @@ import {
   setDoc,
   getDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
-import { PushNotifications } from "@capacitor/push-notifications";
+
 import { Capacitor } from "@capacitor/core";
+import { AuthContext } from "./AuthContext";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 const savePushToken = async (uid: string) => {
   try {

@@ -1,11 +1,13 @@
 import React, { useEffect } from "react";
+import { IonIcon } from "@ionic/react";
+
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L, { LatLngExpression } from "leaflet";
-import "leaflet/dist/leaflet.css";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
-import "./MiniMap.css";
-import { IonIcon } from "@ionic/react";
+import "leaflet/dist/leaflet.css";
+
 import { refresh } from "ionicons/icons";
+import "./styles/MiniMap.css";
 
 const ResizeFix = () => {
   const map = useMap();

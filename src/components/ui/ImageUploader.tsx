@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect, useMemo, memo } from "react";
 import {
   IonButton,
   IonButtons,
@@ -11,9 +12,8 @@ import {
   IonToolbar,
   useIonToast,
 } from "@ionic/react";
-import { useRef, useState, useEffect, useMemo, memo } from "react";
+
 import { DragEndEvent } from "@dnd-kit/core";
-import "./ImageUploader.css";
 import {
   DndContext,
   closestCenter,
@@ -28,6 +28,8 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
+import "./styles/ImageUploader.css";
 
 interface UploadedImage {
   id?: string;

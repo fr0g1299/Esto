@@ -1,7 +1,7 @@
-import { IonContent, IonPage, IonButton, IonIcon, IonText } from "@ionic/react";
-import { alertCircleOutline, homeOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
+import { IonContent, IonPage, IonButton, IonIcon, IonText } from "@ionic/react";
 
+import { alertCircleOutline, homeOutline } from "ionicons/icons";
 import "../styles/NotFound.css";
 
 const NotFound: React.FC = () => {

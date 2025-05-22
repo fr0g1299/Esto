@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import {
   IonContent,
   IonPage,
@@ -17,11 +18,8 @@ import {
   IonAlert,
   useIonViewDidLeave,
 } from "@ionic/react";
-import React, { useRef, useState } from "react";
-import { useStorage } from "../hooks/useStorage";
 import { useAuth } from "../hooks/useAuth";
-
-import "../styles/Collection.css";
+import { useStorage } from "../hooks/useStorage";
 import {
   getFavoriteFolders,
   getSavedFilters,
@@ -29,53 +27,16 @@ import {
 } from "../services/favoritesService";
 import { hapticsHeavy, hapticsLight } from "../services/haptics";
 import { getNotificationProperties } from "../services/propertyService";
+import {
+  OfflineProperty,
+  HistoryProps,
+  FilterProps,
+  FolderProps,
+  PropertyDetailsData,
+  NotificationProps,
+} from "../types/interfaces";
 
-interface HistoryProps {
-  propertyId: string;
-  title: string;
-  price: number;
-  imageUrl: string;
-}
-
-interface FolderProps {
-  id: string;
-  title: string;
-  propertyCount: number;
-}
-
-interface FilterProps {
-  id: string;
-  title: string;
-  criteria: string;
-}
-
-interface OfflineProperty {
-  propertyId: string;
-  title: string;
-  price: number;
-  city: string;
-}
-
-interface PropertyDetails {
-  yearBuilt: number;
-  floors: number;
-  bathroomCount: number;
-  gardenSize: number;
-  propertySize: number;
-  parkingSpots: number;
-  rooms: number;
-  postalCode: string;
-  description: string;
-  kitchenEquipment: string[];
-  heatingType: string;
-}
-
-interface NotificationProps {
-  id: string;
-  title: string;
-  price: number;
-  createdAt: string;
-}
+import "../styles/Collection.css";
 
 const extractReadableFilters = (query: string): string[] => {
   const params = new URLSearchParams(query);
@@ -145,6 +106,8 @@ const displayNames: Record<string, string> = {
 const Collection: React.FC = () => {
   const { user } = useAuth();
   const { set, get, ready } = useStorage();
+  const slidingRef = useRef<HTMLIonItemSlidingElement | null>(null);
+
   const [offlineProperties, setOfflineProperties] = useState<OfflineProperty[]>(
     []
   );
@@ -171,7 +134,6 @@ const Collection: React.FC = () => {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [offlineExpanded, setOfflineExpanded] = useState(false);
   const [notificationsExpanded, setNotificationsExpanded] = useState(false);
-  const slidingRef = useRef<HTMLIonItemSlidingElement | null>(null);
 
   useIonViewDidLeave(() => {
     setAccordionKey((prev) => prev + 1);
@@ -261,7 +223,7 @@ const Collection: React.FC = () => {
       setOfflineProperties(updatedProperties);
       await set("properties", updatedProperties);
 
-      const detailsMap: Record<string, PropertyDetails> =
+      const detailsMap: Record<string, PropertyDetailsData> =
         (await get("detailsMap")) || {};
       delete detailsMap[propertyId];
       await set("detailsMap", detailsMap);

@@ -1,3 +1,5 @@
+import React, { useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 import {
   IonButton,
   IonContent,
@@ -10,24 +12,24 @@ import {
   IonLoading,
   useIonToast,
 } from "@ionic/react";
-import React, { useEffect, useState } from "react";
 import { registerUser } from "../services/authService";
+import { hapticsHeavy, hapticsMedium } from "../services/haptics";
+
 import { MaskitoOptions, maskitoTransform } from "@maskito/core";
 import { useMaskito } from "@maskito/react";
-import { useHistory } from "react-router-dom";
 import "../styles/LoginAndRegistration.css";
-import { hapticsHeavy, hapticsMedium } from "../services/haptics";
 
 const Register: React.FC = () => {
   const history = useHistory();
+  const [showToast] = useIonToast();
+  const [loading, setLoading] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showToast] = useIonToast();
 
   const [isTouched, setIsTouched] = useState(false);
   const [isEmailValid, setIsEmailValid] = useState<boolean | undefined>(
@@ -74,10 +76,6 @@ const Register: React.FC = () => {
   const isValidEmail = (email: string) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
-  };
-
-  const markTouched = () => {
-    setIsTouched(true);
   };
 
   const [emailMessage, setEmailMessage] = useState("Špatný email");
@@ -219,7 +217,7 @@ const Register: React.FC = () => {
                 placeholder="Zadejte e-mail"
                 errorText={emailMessage}
                 onIonInput={(event) => handleEmailChange(event)}
-                onIonBlur={() => markTouched()}
+                onIonBlur={() => setIsTouched(true)}
               ></IonInput>
 
               <IonInput

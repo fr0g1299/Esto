@@ -1,4 +1,4 @@
-import { Preferences } from "@capacitor/preferences";
+import { db } from "../firebase";
 import {
   doc,
   updateDoc,
@@ -8,10 +8,18 @@ import {
   getDoc,
   addDoc,
   serverTimestamp,
+  where,
+  orderBy,
+  deleteDoc,
+  setDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
-import { httpsCallable } from "firebase/functions";
+
 import { functions } from "../firebase";
+import { httpsCallable } from "firebase/functions";
+
+import { Preferences } from "@capacitor/preferences";
+import { User } from "firebase/auth";
+import { Notification, NotificationPreference } from "../types/interfaces";
 
 export const setNotificationPreference = async (
   userId: string,
@@ -109,5 +117,102 @@ export const sendMessageNotification = async (
       body: text.length > 50 ? text.slice(0, 50) + "..." : text,
       payload: { chatId },
     });
+  }
+};
+
+export const fetchUnreadNotificationCount = async (
+  user: User | null
+): Promise<number> => {
+  if (!user) return 0;
+
+  const unreadQuery = query(
+    collection(db, "users", user.uid, "notifications"),
+    where("isRead", "==", false)
+  );
+
+  const snapshot = await getDocs(unreadQuery);
+  return snapshot.size;
+};
+
+export const fetchNotifications = async (
+  user: User | null
+): Promise<Notification[]> => {
+  if (!user) return [];
+
+  const q = query(
+    collection(db, "users", user.uid, "notifications"),
+    orderBy("timestamp", "desc")
+  );
+
+  const snapshot = await getDocs(q);
+  const data = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Notification, "id">),
+  }));
+
+  return data;
+};
+
+export const markNotificationAsRead = async (
+  user: User | null,
+  notificationId: string
+): Promise<void> => {
+  if (!user || !notificationId) {
+    throw new Error("User and notification ID are required");
+  }
+
+  await updateDoc(doc(db, "users", user.uid, "notifications", notificationId), {
+    isRead: true,
+  });
+};
+
+export const deleteNotification = async (
+  user: User | null,
+  notificationId: string
+): Promise<void> => {
+  if (!user || !notificationId) {
+    throw new Error("User and notification ID are required");
+  }
+
+  await deleteDoc(doc(db, "users", user.uid, "notifications", notificationId));
+};
+
+export const setNotificationProperty = async (
+  user: User | null,
+  propertyId: string,
+  notificationPreference: NotificationPreference
+): Promise<void> => {
+  if (!user || !propertyId || !notificationPreference) {
+    throw new Error(
+      "User, property ID, and notification preference are required"
+    );
+  }
+
+  try {
+    await setDoc(
+      doc(db, "users", user.uid, "notificationsPreferences", propertyId),
+      notificationPreference
+    );
+  } catch (error) {
+    console.error("Error setting notification preference:", error);
+    throw error;
+  }
+};
+
+export const deleteNotificationProperty = async (
+  user: User | null,
+  propertyId: string
+): Promise<void> => {
+  if (!user || !propertyId) {
+    throw new Error("User and property ID are required");
+  }
+
+  try {
+    await deleteDoc(
+      doc(db, "users", user.uid, "notificationsPreferences", propertyId)
+    );
+  } catch (error) {
+    console.error("Error deleting notification preference:", error);
+    throw error;
   }
 };

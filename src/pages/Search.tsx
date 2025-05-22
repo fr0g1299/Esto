@@ -1,3 +1,5 @@
+import React, { useState, useRef } from "react";
+import { useHistory } from "react-router-dom";
 import {
   IonPage,
   IonContent,
@@ -12,15 +14,36 @@ import {
   IonText,
   IonItemDivider,
 } from "@ionic/react";
-import React, { useState, useRef } from "react";
-import { useHistory } from "react-router-dom";
-import "../styles/Search.css";
+import { hapticsLight, hapticsMedium } from "../services/haptics";
+import { dispositionOptions, typeOptions } from "../constants/options";
+
 import FormInput from "../components/ui/FormInput";
 import ToggleChip from "../components/ui/ToggleChip";
-import { hapticsLight, hapticsMedium } from "../services/haptics";
+
+import "../styles/Search.css";
+import { useChipOptions } from "../hooks/useChipOptions";
+
+const labelToQueryKey = (label: string): string => {
+  const mapping: Record<string, string> = {
+    Garáž: "garage",
+    Výtah: "elevator",
+    "Plynové připojení": "gasConnection",
+    "Třífázová elektřina": "threePhaseElectricity",
+    Sklep: "basement",
+    Zařízený: "furnished",
+    Balkón: "balcony",
+    Zahrada: "garden",
+    "Solární panely": "solarPanels",
+    Bazén: "pool",
+  };
+  return mapping[label] ?? label; // Fallback if needed
+};
 
 const Search: React.FC = () => {
   const history = useHistory();
+
+  // States for chips
+  const chipOptions = useChipOptions();
 
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(99999999);
@@ -36,73 +59,6 @@ const Search: React.FC = () => {
   const ionInputElMinNumber = useRef<HTMLIonInputElement>(null);
   const ionInputElMaxNumber = useRef<HTMLIonInputElement>(null);
 
-  // States for chips
-  const [garage, setGarage] = useState(false);
-  const [elevator, setElevator] = useState(false);
-  const [gasConnection, setGasConnection] = useState(false);
-  const [threePhaseElectricity, setThreePhaseElectricity] = useState(false);
-  const [basement, setBasement] = useState(false);
-  const [furnished, setFurnished] = useState(false);
-  const [balcony, setBalcony] = useState(false);
-  const [garden, setGarden] = useState(false);
-  const [solarPanels, setSolarPanels] = useState(false);
-  const [pool, setPool] = useState(false);
-
-  const dispositionOptions = [
-    "Vše",
-    "1+kk",
-    "1+1",
-    "2+kk",
-    "2+1",
-    "3+kk",
-    "3+1",
-    "4+kk",
-    "4+1",
-    "5+kk",
-    "5+1",
-    "6+kk",
-    "6+1",
-    "7+kk",
-    "7+1",
-    "Atypický",
-  ];
-
-  const typeOptions = [
-    //TODO: implement in other pages
-    "Vše",
-    "Byt",
-    "Apartmán",
-    "Dům",
-    "Vila",
-    "Chata",
-    "Chalupa",
-  ];
-
-  const chipOptions: {
-    label: string;
-    checked: boolean;
-    setter: React.Dispatch<React.SetStateAction<boolean>>;
-  }[] = [
-    { label: "Garáž", checked: garage, setter: setGarage },
-    { label: "Výtah", checked: elevator, setter: setElevator },
-    {
-      label: "Plynové připojení",
-      checked: gasConnection,
-      setter: setGasConnection,
-    },
-    {
-      label: "Třífázová elektřina",
-      checked: threePhaseElectricity,
-      setter: setThreePhaseElectricity,
-    },
-    { label: "Sklep", checked: basement, setter: setBasement },
-    { label: "Zařízený", checked: furnished, setter: setFurnished },
-    { label: "Balkón", checked: balcony, setter: setBalcony },
-    { label: "Bazén", checked: pool, setter: setPool },
-    { label: "Zahrada", checked: garden, setter: setGarden },
-    { label: "Solární panely", checked: solarPanels, setter: setSolarPanels },
-  ];
-
   const handleSearch = async () => {
     const query = new URLSearchParams();
     await hapticsMedium();
@@ -117,17 +73,13 @@ const Search: React.FC = () => {
     if (minPrice !== 0) query.append("minPrice", minPrice.toString());
     if (maxPrice !== 0 && maxPrice !== 99999999)
       query.append("maxPrice", maxPrice.toString());
-
-    if (garage) query.append("garage", "true");
-    if (elevator) query.append("elevator", "true");
-    if (gasConnection) query.append("gasConnection", "true");
-    if (threePhaseElectricity) query.append("threePhaseElectricity", "true");
-    if (basement) query.append("basement", "true");
-    if (furnished) query.append("furnished", "true");
-    if (balcony) query.append("balcony", "true");
-    if (garden) query.append("garden", "true");
-    if (solarPanels) query.append("solarPanels", "true");
-    if (pool) query.append("pool", "true");
+    chipOptions.forEach(({ label, checked }) => {
+      if (checked) {
+        // Use camelCase keys in the query
+        const key = labelToQueryKey(label);
+        query.append(key, "true");
+      }
+    });
 
     console.log("Query params:", query.toString());
 

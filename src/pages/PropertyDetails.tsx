@@ -1,3 +1,5 @@
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useParams, useHistory } from "react-router";
 import {
   IonContent,
   IonPage,
@@ -25,24 +27,42 @@ import {
   RefresherEventDetail,
   useIonViewWillEnter,
 } from "@ionic/react";
-import { useParams } from "react-router";
-import { useEffect, useState, useRef, useCallback } from "react";
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  GeoPoint,
-  increment,
-  updateDoc,
-  setDoc,
-  Timestamp,
-  deleteDoc,
-} from "firebase/firestore";
-import { db } from "../firebase";
-import { useHistory } from "react-router";
-import MiniMap from "../components/ui/MiniMap";
+import { Share } from "@capacitor/share";
+import { Preferences } from "@capacitor/preferences";
 
+import { useAuth } from "../hooks/useAuth";
+import { useStorage } from "../hooks/useStorage";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import { isPropertyFavorited } from "../services/favoritesService";
+import { getOrCreateChat } from "../services/chatService";
+import { hapticsLight } from "../services/haptics";
+import {
+  fetchPropertyData,
+  getNotificationProperties,
+} from "../services/propertyService";
+import {
+  deleteNotificationProperty,
+  setNotificationProperty,
+} from "../services/notificationsService";
+import {
+  PropertyRouteParams,
+  PropertyDetailsData,
+  UploadedImage,
+  Property,
+  UserContact,
+} from "../types/interfaces";
+
+import MiniMap from "../components/ui/MiniMap";
+import ImageViewerModal from "../components/ui/ImageViewerModal";
+import FavoriteSelectorModal from "../components/ui/FavoriteSelectorModal";
+
+import { EffectFade, Autoplay } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Swiper as SwiperClass } from "swiper";
+import "swiper/css";
+import "swiper/css/effect-fade";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 import {
   heartOutline,
   heart,
@@ -61,86 +81,7 @@ import {
   cloudDownloadOutline,
   refresh,
 } from "ionicons/icons";
-
-import { EffectFade, Autoplay } from "swiper/modules";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Swiper as SwiperClass } from "swiper";
-
-// Import Swiper styles
-import "swiper/css";
-import "swiper/css/effect-fade";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
 import "../styles/PropertyDetails.css";
-import ImageViewerModal from "../components/ui/ImageViewerModal";
-import FavoriteSelectorModal from "../components/ui/FavoriteSelectorModal";
-import { isPropertyFavorited } from "../services/favoritesService";
-import { useAuth } from "../hooks/useAuth";
-import { useStorage } from "../hooks/useStorage";
-import { Preferences } from "@capacitor/preferences";
-import { Share } from "@capacitor/share";
-import { getOrCreateChat } from "../services/chatService";
-import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
-import { hapticsLight } from "../services/haptics";
-import { getNotificationProperties } from "../services/propertyService";
-
-interface RouteParams {
-  propertyId: string;
-}
-
-interface Property {
-  propertyId: string;
-  ownerId: string;
-  title: string;
-  price: number;
-  status: "Available" | "Sold";
-  address: string;
-  city: string;
-  type: "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa";
-  disposition: string;
-  imageUrl: string;
-  geolocation: GeoPoint;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  garage: boolean;
-  elevator: boolean;
-  gasConnection: boolean;
-  threePhaseElectricity: boolean;
-  basement: boolean;
-  furnished: boolean;
-  balcony: boolean;
-  garden: boolean;
-  solarPanels: boolean;
-  pool: boolean;
-  views: number;
-}
-
-interface PropertyDetails {
-  yearBuilt: number;
-  floors: number;
-  bathroomCount: number;
-  gardenSize: number;
-  propertySize: number;
-  parkingSpots: number;
-  rooms: number;
-  postalCode: string;
-  description: string;
-  kitchenEquipment: string[];
-  heatingType: string;
-}
-
-interface PropertyImages {
-  imageUrl: string;
-  altText: string;
-  sortOrder: number;
-}
-
-interface UserContact {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-}
 
 const slideOpts = {
   spaceBetween: 30,
@@ -154,33 +95,22 @@ const slideOpts = {
   },
 };
 
-const incrementViews = async (id: string) => {
-  try {
-    const docRef = doc(db, "properties", id);
-    await updateDoc(docRef, {
-      views: increment(1),
-    });
-    console.log("Views incremented successfully");
-  } catch (error) {
-    console.error("Failed to increment views:", error);
-  }
-};
-
 const PropertyDetails: React.FC = () => {
-  const { propertyId } = useParams<RouteParams>();
-  useTabBarScrollEffect();
-  const [showToast] = useIonToast();
-  const history = useHistory();
   const { user } = useAuth();
   const { get, set, ready } = useStorage();
+  const history = useHistory();
+  useTabBarScrollEffect();
+  const [showToast] = useIonToast();
+
+  const { propertyId } = useParams<PropertyRouteParams>();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isSavedOffline, setIsSavedOffline] = useState(false);
 
-  const [property, setProperty] = useState<Property>();
-  const [details, setDetails] = useState<PropertyDetails>();
-  const [images, setImages] = useState<PropertyImages[]>();
-  const [userContact, setUserContact] = useState<UserContact>();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [details, setDetails] = useState<PropertyDetailsData | null>(null);
+  const [images, setImages] = useState<UploadedImage[]>();
+  const [userContact, setUserContact] = useState<UserContact | null>(null);
   const [showFavoriteModal, setShowFavoriteModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -191,76 +121,33 @@ const PropertyDetails: React.FC = () => {
     { label: string; value: boolean | undefined }[]
   >([]);
   const [cardDetails, setCardDetails] = useState<
-    { label: string; value: boolean | undefined }[]
+    Array<{ label: string; value: number | string }>
   >([]);
 
   const fetchData = useCallback(
     async (refresh: boolean = false) => {
       if (!propertyId) return;
-      //TODO: clean this up into a service
-      const propertyDoc = await getDoc(doc(db, "properties", propertyId));
-      if (!propertyDoc.exists()) {
-        history.replace("/not-found");
-      }
-      const detailsDoc = await getDoc(
-        doc(db, "properties", propertyId, "details", "data")
-      );
-      const imageDocs = await getDocs(
-        collection(db, "properties", propertyId, "images")
-      );
-      const userDoc = await getDoc(
-        doc(db, "users", propertyDoc.data()?.ownerId)
-      );
-      if (propertyDoc.exists()) {
-        setProperty({ ...(propertyDoc.data() as Property), propertyId });
 
-        setFeatures([
-          { label: "Garáž", value: propertyDoc.data().garage },
-          { label: "Výtah", value: propertyDoc.data().elevator },
-          {
-            label: "Plynové připojení",
-            value: propertyDoc.data().gasConnection,
-          },
-          {
-            label: "Třífázová elektřina",
-            value: propertyDoc.data().threePhaseElectricity,
-          },
-          { label: "Sklep", value: propertyDoc.data().basement },
-          { label: "Zařízený", value: propertyDoc.data().furnished },
-          { label: "Balkón", value: propertyDoc.data().balcony },
-          { label: "Zahrada", value: propertyDoc.data().garden },
-          { label: "Solární panely", value: propertyDoc.data().solarPanels },
-          { label: "Bazén", value: propertyDoc.data().pool },
-        ]);
-      }
-      if (detailsDoc.exists()) {
-        setDetails(detailsDoc.data() as PropertyDetails);
+      try {
+        const data = await fetchPropertyData(propertyId, user, refresh);
+        if (!data.exists) {
+          history.replace("/not-found");
+          return;
+        }
 
-        setCardDetails([
-          { label: "Počet pokojů", value: detailsDoc.data().rooms },
-          { label: "Koupelny", value: detailsDoc.data().bathroomCount },
-          { label: "Podlaží", value: detailsDoc.data().floors },
-          { label: "Rok výstavby", value: detailsDoc.data().yearBuilt },
-          { label: "Parkovací místa", value: detailsDoc.data().parkingSpots },
-          { label: "Vytápění", value: detailsDoc.data().heatingType },
-        ]);
+        setProperty(data.property || null);
+        setFeatures(data.features || []);
+        setDetails(data.details || null);
+        setCardDetails(data.cardDetails || []);
+        setUserContact(data.userContact || null);
+        setImages(data.images || []);
+        setIsFavorite(data.isFavorite || false);
+      } catch (error) {
+        console.error("Error fetching property data:", error);
+        history.replace("/not-found"); // Redirect on error, adjust as needed
       }
-      if (userDoc.exists()) setUserContact(userDoc.data() as UserContact);
-      setImages(
-        imageDocs.docs
-          .map((doc) => doc.data() as PropertyImages)
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-      );
-      if (!refresh) {
-        await incrementViews(propertyId);
-      }
-
-      if (!user) return;
-
-      const isFav = await isPropertyFavorited(user.uid, propertyId);
-      setIsFavorite(isFav);
     },
-    [propertyId, history, user]
+    [propertyId, user, history]
   );
 
   useEffect(() => {
@@ -355,10 +242,7 @@ const PropertyDetails: React.FC = () => {
           createdAt: new Date(),
         };
 
-        await setDoc(
-          doc(db, "users", user.uid, "notificationsPreferences", propertyId),
-          notificationPreference
-        );
+        await setNotificationProperty(user, propertyId, notificationPreference);
 
         setNotificationsEnabled(!notificationsEnabled);
         showToast(
@@ -368,9 +252,7 @@ const PropertyDetails: React.FC = () => {
 
         console.log("Notification preference saved successfully.");
       } else {
-        await deleteDoc(
-          doc(db, "users", user.uid, "notificationsPreferences", propertyId)
-        );
+        await deleteNotificationProperty(user, propertyId);
 
         setNotificationsEnabled(!notificationsEnabled);
         showToast("Upozornění na snížení ceny bylo zrušeno.", 2500);
@@ -404,7 +286,7 @@ const PropertyDetails: React.FC = () => {
     const detailsMap = (await get("detailsMap")) || {};
     await set("detailsMap", {
       ...detailsMap,
-      [property.propertyId]: { ...details, propertyId },
+      [String(property.propertyId)]: { ...details, propertyId },
     });
 
     showToast("Nemovitost byla uložena offline", 2500);

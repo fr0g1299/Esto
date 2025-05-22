@@ -1,26 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { IonPage, IonContent, IonIcon } from "@ionic/react";
 import { Link, useLocation } from "react-router-dom";
+import { IonPage, IonContent, IonIcon } from "@ionic/react";
+import { LocationStateMap, PropertyMarker } from "../types/interfaces";
+
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { collection, GeoPoint, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
-import "../styles/SearchMap.css";
 import { refresh } from "ionicons/icons";
-
-interface Property {
-  id: string;
-  title: string;
-  geolocation: GeoPoint;
-  imageUrl: string;
-}
-
-interface LocationState {
-  properties: Property[];
-}
+import "../styles/SearchMap.css";
+import { fetchAllProperties } from "../services/propertyService";
 
 const ResizeMap = () => {
   const map = useMap();
@@ -35,22 +25,11 @@ const ResizeMap = () => {
 };
 
 const SearchMap: React.FC = () => {
-  const location = useLocation<LocationState>();
-  const [properties, setProperties] = useState<Property[]>([]);
+  const location = useLocation<LocationStateMap>();
+  const [properties, setProperties] = useState<PropertyMarker[]>([]);
 
-  const fetchAllProperties = async () => {
-    const propRef = collection(db, "properties");
-    const propSnap = await getDocs(propRef);
-    const props: Property[] = [];
-    propSnap.forEach((doc) => {
-      const data = doc.data();
-      props.push({
-        id: doc.id,
-        title: data.title,
-        geolocation: data.geolocation,
-        imageUrl: data.imageUrl,
-      });
-    });
+  const fetchProperties = async () => {
+    const props = await fetchAllProperties();
     setProperties(props);
   };
 
@@ -61,10 +40,17 @@ const SearchMap: React.FC = () => {
       location.state.properties.length > 0
     ) {
       // If properties passed in state (from search result page)
-      setProperties(location.state.properties);
+      setProperties(
+        location.state.properties.map((property) => ({
+          id: property.propertyId ?? "",
+          title: property.title,
+          geolocation: property.geolocation,
+          imageUrl: property.imageUrl,
+        }))
+      );
     } else {
       // Otherwise, fetch all properties from Firestore
-      fetchAllProperties();
+      fetchProperties();
     }
   }, [location.state]);
 

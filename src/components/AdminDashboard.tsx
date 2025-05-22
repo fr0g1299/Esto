@@ -19,32 +19,17 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
-
-interface Property {
-  id: string;
-  title: string;
-}
-
-interface Trending {
-  id: string;
-  title: string;
-}
-
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-}
+import { PropertyList, TrendingList, UserList } from "../types/interfaces";
 
 const AdminDashboard: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [trending, setTrending] = useState<Trending[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const slidingRef = useRef<HTMLIonItemSlidingElement[]>([]);
-  const removeProperty = httpsCallable(functions, "removeProperty");
   const [showToast] = useIonToast();
+  const removeProperty = httpsCallable(functions, "removeProperty");
   const [loading, setLoading] = useState(false);
+
+  const [properties, setProperties] = useState<PropertyList[]>([]);
+  const [trending, setTrending] = useState<TrendingList[]>([]);
+  const [users, setUsers] = useState<UserList[]>([]);
+  const slidingRef = useRef<HTMLIonItemSlidingElement[]>([]);
 
   // Fetch data from Firebase collections
   useEffect(() => {
@@ -54,7 +39,7 @@ const AdminDashboard: React.FC = () => {
         const propertiesSnapshot = await getDocs(collection(db, "properties"));
         setProperties(
           propertiesSnapshot.docs.map((doc) => {
-            const data = doc.data() as Partial<Property>;
+            const data = doc.data() as Partial<PropertyList>;
             return { id: doc.id, title: data.title || "Unnamed Property" };
           })
         );
@@ -63,7 +48,7 @@ const AdminDashboard: React.FC = () => {
         const trendingSnapshot = await getDocs(collection(db, "trending"));
         setTrending(
           trendingSnapshot.docs.map((doc) => {
-            const data = doc.data() as Partial<Trending>;
+            const data = doc.data() as Partial<TrendingList>;
             return { id: doc.id, title: data.title || "Unnamed Trend" };
           })
         );
@@ -72,7 +57,7 @@ const AdminDashboard: React.FC = () => {
         const usersSnapshot = await getDocs(collection(db, "users"));
         setUsers(
           usersSnapshot.docs.map((doc) => {
-            const data = doc.data() as Partial<User>;
+            const data = doc.data() as Partial<UserList>;
             return {
               id: doc.id,
               email: data.email || "No Email",

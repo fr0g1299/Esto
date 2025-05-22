@@ -7,6 +7,7 @@ import {
   IonButtons,
   IonText,
 } from "@ionic/react";
+
 import { addOutline, removeOutline } from "ionicons/icons";
 
 interface StepperInputProps {

@@ -10,71 +10,44 @@ import {
   getDocs,
   writeBatch,
   deleteDoc,
+  query,
+  orderBy,
+  limit,
+  where,
+  startAfter,
+  QueryConstraint,
+  QueryDocumentSnapshot,
+  DocumentData,
+  increment,
 } from "firebase/firestore";
-import { v4 as uuidv4 } from "uuid";
-import imageCompression from "browser-image-compression";
 import {
   ref,
   uploadBytes,
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
+import { User } from "firebase/auth";
+
 import { sendPriceDropNotification } from "./notificationsService";
+import { isPropertyFavorited } from "./favoritesService";
+import { geocodeAddress, getBoundingBoxFromRadius } from "./geocodingService";
+import {
+  Property,
+  PropertyDetailsData,
+  PropertyData,
+  UploadedImage,
+  NotificationProps,
+  UserContact,
+  TrendingProperty,
+  PropertySearchResults,
+  NewestProperty,
+  PropertyMarker,
+  SearchQueryParams,
+  SearchResults,
+} from "../types/interfaces";
 
-interface Property {
-  ownerId: string;
-  title: string;
-  price: number;
-  status: "Available" | "Sold";
-  address: string;
-  city: string;
-  type: "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa";
-  disposition: string;
-  imageUrl: string;
-  geolocation: {
-    latitude: number;
-    longitude: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-  garage: boolean;
-  elevator: boolean;
-  gasConnection: boolean;
-  threePhaseElectricity: boolean;
-  basement: boolean;
-  furnished: boolean;
-  balcony: boolean;
-  garden: boolean;
-  solarPanels: boolean;
-  pool: boolean;
-}
-
-interface PropertyDetails {
-  yearBuilt: number;
-  floors: number;
-  bathroomCount: number;
-  gardenSize: number;
-  propertySize: number;
-  parkingSpots: number;
-  rooms: number;
-  postalCode: string;
-  description: string;
-  kitchenEquipment: string[];
-  heatingType: string;
-}
-
-interface UploadedImage {
-  imageUrl: string;
-  altText?: string;
-  sortOrder?: number;
-}
-
-interface NotificationProps {
-  id: string;
-  title: string;
-  price: number;
-  createdAt: string;
-}
+import { v4 as uuidv4 } from "uuid";
+import imageCompression from "browser-image-compression";
 
 const uploadImage = async (file: File, propertyId: string): Promise<string> => {
   const options = {
@@ -112,8 +85,11 @@ function trimStringFields<T extends Record<string, any>>(obj: T): T {
 }
 
 export const createProperty = async (
-  propertyData: Omit<Property, "createdAt" | "updatedAt" | "imageUrl">,
-  detailsData: PropertyDetails,
+  propertyData: Omit<
+    Property,
+    "propertyId" | "createdAt" | "updatedAt" | "imageUrl" | "views"
+  >,
+  detailsData: PropertyDetailsData,
   imageFiles: File[]
 ) => {
   const trimmedPropertyData = trimStringFields(propertyData);
@@ -175,7 +151,7 @@ export const getPropertyById = async (propertyId: string) => {
     throw new Error("Property details not found");
   }
 
-  const detailsData = detailsSnapshot.data() as PropertyDetails;
+  const detailsData = detailsSnapshot.data() as PropertyDetailsData;
 
   return { ...propertyData, ...detailsData, images };
 };
@@ -191,7 +167,7 @@ function extractStoragePathFromUrl(url: string): string | null {
 export const updateProperty = async (
   propertyId: string,
   propertyData: Partial<Omit<Property, "createdAt" | "updatedAt">>,
-  detailsData: Partial<PropertyDetails>,
+  detailsData: Partial<PropertyDetailsData>,
   newImageFiles: File[] = [],
   keptImages: UploadedImage[] = [],
   removedImages: UploadedImage[] = []
@@ -296,4 +272,284 @@ export const getNotificationProperties = async (
     price: doc.data().price,
     createdAt: doc.data().createdAt,
   }));
+};
+
+export const fetchTrendingProperties = async (): Promise<
+  TrendingProperty[]
+> => {
+  const q = query(collection(db, "trending"), orderBy("views", "desc"));
+  const propertiesSnapshot = await getDocs(q);
+  return propertiesSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<TrendingProperty, "id">),
+  }));
+};
+
+export const fetchNewestProperties = async (): Promise<NewestProperty[]> => {
+  const q = query(
+    collection(db, "properties"),
+    orderBy("createdAt", "desc"),
+    limit(5)
+  );
+  const propertiesSnapshot = await getDocs(q);
+  return propertiesSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<NewestProperty, "id">),
+  }));
+};
+
+const incrementViews = async (id: string): Promise<void> => {
+  if (!id) {
+    throw new Error("Property ID is required");
+  }
+
+  try {
+    const docRef = doc(db, "properties", id);
+    await updateDoc(docRef, {
+      views: increment(1),
+    });
+  } catch (error) {
+    console.error("Failed to increment views:", error);
+    throw error;
+  }
+};
+
+export const fetchPropertyData = async (
+  propertyId: string,
+  user: User | null,
+  refresh: boolean = false
+): Promise<PropertyData> => {
+  if (!propertyId) {
+    return { exists: false };
+  }
+
+  try {
+    // Fetch property document
+    const propertyDoc = await getDoc(doc(db, "properties", propertyId));
+    if (!propertyDoc.exists()) {
+      return { exists: false };
+    }
+
+    // Fetch details, images, and user
+    const [detailsDoc, imageDocs, userDoc] = await Promise.all([
+      getDoc(doc(db, "properties", propertyId, "details", "data")),
+      getDocs(collection(db, "properties", propertyId, "images")),
+      getDoc(doc(db, "users", propertyDoc.data()?.ownerId)),
+    ]);
+
+    // Process property data
+    const propertyData = propertyDoc.data() as Property;
+    const property: Property = { ...propertyData, propertyId };
+
+    // Process features
+    const features = [
+      { label: "Garáž", value: propertyData.garage },
+      { label: "Výtah", value: propertyData.elevator },
+      { label: "Plynové připojení", value: propertyData.gasConnection },
+      {
+        label: "Třífázová elektřina",
+        value: propertyData.threePhaseElectricity,
+      },
+      { label: "Sklep", value: propertyData.basement },
+      { label: "Zařízený", value: propertyData.furnished },
+      { label: "Balkón", value: propertyData.balcony },
+      { label: "Zahrada", value: propertyData.garden },
+      { label: "Solární panely", value: propertyData.solarPanels },
+      { label: "Bazén", value: propertyData.pool },
+    ];
+
+    // Process details and card details
+    const details = detailsDoc.exists()
+      ? (detailsDoc.data() as PropertyDetailsData)
+      : undefined;
+    const cardDetails = detailsDoc.exists()
+      ? [
+          { label: "Počet pokojů", value: details!.rooms },
+          { label: "Koupelny", value: details!.bathroomCount },
+          { label: "Podlaží", value: details!.floors },
+          { label: "Rok výstavby", value: details!.yearBuilt },
+          { label: "Parkovací místa", value: details!.parkingSpots },
+          { label: "Vytápění", value: details!.heatingType },
+        ]
+      : undefined;
+
+    // Process user contact
+    const userContact = userDoc.exists()
+      ? (userDoc.data() as UserContact)
+      : undefined;
+
+    // Process images
+    const images = imageDocs.docs
+      .map((doc) => doc.data() as UploadedImage)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    // Increment views if not refreshing
+    if (!refresh) {
+      await incrementViews(propertyId);
+    }
+
+    // Check if property is favorited
+    const isFavorite = user
+      ? await isPropertyFavorited(user.uid, propertyId)
+      : false;
+
+    return {
+      exists: true,
+      property,
+      features,
+      details,
+      cardDetails,
+      userContact,
+      images,
+      isFavorite,
+    };
+  } catch (error) {
+    console.error("Error fetching property data:", error);
+    throw error;
+  }
+};
+
+export const fetchAllProperties = async (): Promise<PropertyMarker[]> => {
+  try {
+    const propRef = collection(db, "properties");
+    const propSnap = await getDocs(propRef);
+    const props: PropertyMarker[] = propSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title,
+        geolocation: data.geolocation,
+        imageUrl: data.imageUrl,
+      };
+    });
+    return props;
+  } catch (error) {
+    console.error("Error fetching all properties:", error);
+    throw error;
+  }
+};
+
+export const fetchPropertySearchResults = async (
+  queryParams: SearchQueryParams,
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null = null,
+  pageSize: number = 5,
+  isPaginating: boolean = false
+): Promise<SearchResults> => {
+  try {
+    const propertyRef = collection(db, "properties");
+    const constraints: QueryConstraint[] = [
+      orderBy("createdAt", "desc"),
+      limit(pageSize),
+    ];
+
+    // Filters
+    if (queryParams.city) {
+      constraints.push(where("city", "==", queryParams.city));
+    }
+    if (queryParams.address) {
+      const radius = parseFloat(queryParams.radius || "15");
+      try {
+        const { latitude, longitude } = await geocodeAddress(
+          queryParams.address
+        );
+        const { sw, ne } = getBoundingBoxFromRadius(
+          latitude,
+          longitude,
+          radius
+        );
+        constraints.push(
+          where("geolocation.latitude", "<=", ne.lat),
+          where("geolocation.latitude", ">=", sw.lat),
+          where("geolocation.longitude", "<=", ne.lng),
+          where("geolocation.longitude", ">=", sw.lng)
+        );
+      } catch (err) {
+        console.error("Error geocoding address:", err);
+        // Fallback to broad geolocation constraints
+        constraints.push(
+          where("geolocation.latitude", "<=", 90),
+          where("geolocation.latitude", ">=", -90),
+          where("geolocation.longitude", "<=", 180),
+          where("geolocation.longitude", ">=", -180)
+        );
+      }
+    } else {
+      constraints.push(
+        where("geolocation.latitude", "<=", 90),
+        where("geolocation.latitude", ">=", -90),
+        where("geolocation.longitude", "<=", 180),
+        where("geolocation.longitude", ">=", -180)
+      );
+    }
+    if (queryParams.type) {
+      constraints.push(where("type", "==", queryParams.type));
+    }
+    if (queryParams.disposition) {
+      constraints.push(where("disposition", "==", queryParams.disposition));
+    }
+
+    // Price
+    constraints.push(
+      where("price", ">=", parseInt(queryParams.minPrice || "0"))
+    );
+    if (queryParams.maxPrice) {
+      constraints.push(
+        where("price", "<=", parseInt(queryParams.maxPrice || "99999999"))
+      );
+    }
+
+    // Chips
+    if (queryParams.garage === "true") {
+      constraints.push(where("garage", "==", true));
+    }
+    if (queryParams.elevator === "true") {
+      constraints.push(where("elevator", "==", true));
+    }
+    if (queryParams.gasConnection === "true") {
+      constraints.push(where("gasConnection", "==", true));
+    }
+    if (queryParams.threePhaseElectricity === "true") {
+      constraints.push(where("threePhaseElectricity", "==", true));
+    }
+    if (queryParams.basement === "true") {
+      constraints.push(where("basement", "==", true));
+    }
+    if (queryParams.furnished === "true") {
+      constraints.push(where("furnished", "==", true));
+    }
+    if (queryParams.balcony === "true") {
+      constraints.push(where("balcony", "==", true));
+    }
+    if (queryParams.garden === "true") {
+      constraints.push(where("garden", "==", true));
+    }
+    if (queryParams.solarPanels === "true") {
+      constraints.push(where("solarPanels", "==", true));
+    }
+    if (queryParams.pool === "true") {
+      constraints.push(where("pool", "==", true));
+    }
+
+    // Pagination
+    if (isPaginating && lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+
+    const queryRef = query(propertyRef, ...constraints);
+    const snapshot = await getDocs(queryRef);
+
+    const results = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<PropertySearchResults, "id">),
+    }));
+
+    return {
+      properties: results,
+      lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
+      hasMore: snapshot.size === pageSize,
+    };
+  } catch (error) {
+    console.error("Failed to fetch properties:", error);
+    throw error;
+  }
 };

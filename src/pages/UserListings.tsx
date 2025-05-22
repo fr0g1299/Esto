@@ -17,19 +17,13 @@ import {
 } from "@ionic/react";
 import { useAuth } from "../hooks/useAuth";
 import { getUserListings } from "../services/userService";
+import { Listing } from "../types/interfaces";
 
 import "../styles/UserListings.css";
 
-interface Listing {
-  id: string;
-  title: string;
-  price: number;
-  imageUrl: string;
-  views: number;
-}
-
 const UserListings: React.FC = () => {
   const { user } = useAuth();
+
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 

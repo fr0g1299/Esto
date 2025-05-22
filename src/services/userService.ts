@@ -1,3 +1,4 @@
+import { db } from "../firebase";
 import {
   collection,
   query,
@@ -8,7 +9,6 @@ import {
   doc,
   deleteDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
 import {
   deleteUser,
   EmailAuthProvider,
@@ -17,6 +17,7 @@ import {
   updateProfile,
   User,
 } from "firebase/auth";
+
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
 

@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+import { useHistory } from "react-router";
 import {
   IonContent,
   IonIcon,
@@ -22,30 +24,28 @@ import {
   IonRefresherContent,
   useIonToast,
 } from "@ionic/react";
-import { useCallback, useEffect, useState } from "react";
-import { notificationsOutline, add, refresh } from "ionicons/icons";
-import "../styles/Home.css";
-import { useHistory } from "react-router";
-import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import { RefresherEventDetail } from "@ionic/core";
-
-import { db } from "../firebase";
+import { Network } from "@capacitor/network";
+import { useAuth } from "../hooks/useAuth";
+import { useStorage } from "../hooks/useStorage";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
 import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  where,
-} from "firebase/firestore";
+  fetchTrendingProperties,
+  fetchNewestProperties,
+} from "../services/propertyService";
+import { fetchUnreadNotificationCount } from "../services/notificationsService";
+import {
+  TrendingProperty,
+  NewestProperty,
+  OfflineProperty,
+} from "../types/interfaces";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
-import { useAuth } from "../hooks/useAuth";
-import { useStorage } from "../hooks/useStorage";
-import { Network } from "@capacitor/network";
+import { notificationsOutline, add, refresh } from "ionicons/icons";
+import "../styles/Home.css";
 
 const slideOpts = {
   slidesPerView: 1.2,
@@ -67,58 +67,14 @@ const slideOpts = {
   },
 };
 
-interface NewestProperty {
-  id: string;
-  title: string;
-  price: number;
-  city: string;
-  imageUrl: string;
-}
-
-interface TrendingProperty {
-  id: string;
-  propertyId: string;
-  title: string;
-  imageUrl: string;
-  price: number;
-  views: number;
-}
-
-interface OfflineProperty {
-  propertyId: string;
-  title: string;
-  price: number;
-  city: string;
-}
-
-const fetchTrendingProperties = async () => {
-  const q = query(collection(db, "trending"), orderBy("views", "desc"));
-  const propertiesSnapshot = await getDocs(q);
-  return propertiesSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<TrendingProperty, "id">),
-  }));
-};
-
-const fetchNewestProperties = async () => {
-  const q = query(
-    collection(db, "properties"),
-    orderBy("createdAt", "desc"),
-    limit(5)
-  );
-  const propertiesSnapshot = await getDocs(q);
-  return propertiesSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<NewestProperty, "id">),
-  }));
-};
-
 const Home: React.FC = () => {
   const { user } = useAuth();
+  const { get } = useStorage();
   const history = useHistory();
-  useTabBarScrollEffect();
   const [showToast] = useIonToast();
+  useTabBarScrollEffect();
   const [loading, setLoading] = useState(true);
+  
   const [trendingProperties, setTrendingProperties] = useState<
     TrendingProperty[]
   >([]);
@@ -126,7 +82,6 @@ const Home: React.FC = () => {
     []
   );
   const [unreadCount, setUnreadCount] = useState(0);
-  const { get } = useStorage();
   const [offlineProperties, setOfflineProperties] = useState<OfflineProperty[]>(
     []
   );
@@ -149,13 +104,9 @@ const Home: React.FC = () => {
   const getNotificationSize = useCallback(async () => {
     if (!user) return;
 
-    const unreadQuery = query(
-      collection(db, "users", user.uid, "notifications"),
-      where("isRead", "==", false)
-    );
+    const unreadNotCount = await fetchUnreadNotificationCount(user);
 
-    const snapshot = await getDocs(unreadQuery);
-    setUnreadCount(snapshot.size); // For future use, right now size color is transparent
+    setUnreadCount(unreadNotCount); // For future use, right now size color is transparent
   }, [user]);
 
   useEffect(() => {

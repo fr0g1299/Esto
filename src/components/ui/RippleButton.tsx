@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
-import "./RippleButton.css";
+
+import "./styles/RippleButton.css";
 
 interface RippleButtonProps {
   onClick?: () => void;

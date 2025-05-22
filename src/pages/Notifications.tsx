@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { useHistory } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
@@ -17,22 +19,16 @@ import {
   IonText,
   IonButton,
 } from "@ionic/react";
-import { useEffect, useRef, useState } from "react";
-import { db } from "../firebase";
-import {
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  orderBy,
-  query,
-  Timestamp,
-  deleteDoc,
-} from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
-import { useHistory } from "react-router-dom";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import { hapticsHeavy, hapticsLight } from "../services/haptics";
+import {
+  deleteNotification,
+  fetchNotifications,
+  markNotificationAsRead,
+} from "../services/notificationsService";
+import { Notification } from "../types/interfaces";
 
-import "../styles/Notifications.css";
 import {
   checkmarkCircleOutline,
   homeOutline,
@@ -40,57 +36,33 @@ import {
   notificationsOutline,
   pricetagOutline,
 } from "ionicons/icons";
-import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
-import { hapticsHeavy, hapticsLight } from "../services/haptics";
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  timestamp: Timestamp;
-  isRead: boolean;
-  isRemoving?: boolean;
-  actionId?: string;
-  actionUrl?: string;
-}
+import "../styles/Notifications.css";
 
 const Notifications: React.FC = () => {
   const { user } = useAuth();
+  const history = useHistory();
   useTabBarScrollEffect();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const history = useHistory();
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchNotifications = async () => {
-      const q = query(
-        collection(db, "users", user.uid, "notifications"),
-        orderBy("timestamp", "desc")
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Notification, "id">),
-      }));
-      console.log(data);
+    const fetchData = async () => {
+      const data = await fetchNotifications(user);
+
       setNotifications(data);
       setLoading(false);
     };
 
-    fetchNotifications();
+    fetchData();
   }, [user]);
 
   const handleClick = async (notification: Notification) => {
     if (!user) return;
 
     if (!notification.isRead) {
-      await updateDoc(
-        doc(db, "users", user.uid, "notifications", notification.id),
-        { isRead: true }
-      );
+      await markNotificationAsRead(user, notification.id);
     }
 
     setNotifications((prev) =>
@@ -108,12 +80,7 @@ const Notifications: React.FC = () => {
     if (!user) return;
     await hapticsLight();
 
-    await updateDoc(
-      doc(db, "users", user.uid, "notifications", notificationId),
-      {
-        isRead: true,
-      }
-    );
+    await markNotificationAsRead(user, notificationId);
 
     setNotifications((prev) =>
       prev.map((notif) =>
@@ -134,9 +101,7 @@ const Notifications: React.FC = () => {
     );
 
     setTimeout(async () => {
-      await deleteDoc(
-        doc(db, "users", user.uid, "notifications", notificationId)
-      );
+      await deleteNotification(user, notificationId);
 
       setNotifications((prev) =>
         prev.filter((notif) => notif.id !== notificationId)

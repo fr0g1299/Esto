@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router";
 import {
   IonContent,
   IonPage,
@@ -18,9 +20,13 @@ import {
   IonCardContent,
   IonChip,
 } from "@ionic/react";
-import { useParams } from "react-router";
-import { useEffect, useState } from "react";
-import { GeoPoint, Timestamp } from "firebase/firestore";
+import { useStorage } from "../hooks/useStorage";
+import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
+import {
+  PropertyRouteParams,
+  PropertyDetailsData,
+  Property,
+} from "../types/interfaces";
 
 import {
   checkmarkOutline,
@@ -29,70 +35,15 @@ import {
   closeOutline,
   eyeOutline,
 } from "ionicons/icons";
-
-// Import Swiper styles
-import "swiper/css";
-import "swiper/css/effect-fade";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
 import "../styles/PropertyDetails.css";
 
-import { useStorage } from "../hooks/useStorage";
-
-import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
-
-interface RouteParams {
-  propertyId: string;
-}
-
-interface Property {
-  propertyId: string;
-  ownerId: string;
-  title: string;
-  price: number;
-  status: "Available" | "Sold";
-  address: string;
-  city: string;
-  type: "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa";
-  disposition: string;
-  imageUrl: string;
-  geolocation: GeoPoint;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  garage: boolean;
-  elevator: boolean;
-  gasConnection: boolean;
-  threePhaseElectricity: boolean;
-  basement: boolean;
-  furnished: boolean;
-  balcony: boolean;
-  garden: boolean;
-  solarPanels: boolean;
-  pool: boolean;
-  views: number;
-}
-
-interface PropertyDetails {
-  yearBuilt: number;
-  floors: number;
-  bathroomCount: number;
-  gardenSize: number;
-  propertySize: number;
-  parkingSpots: number;
-  rooms: number;
-  postalCode: string;
-  description: string;
-  kitchenEquipment: string[];
-  heatingType: string;
-}
-
 const OfflineDetails: React.FC = () => {
-  const { propertyId } = useParams<RouteParams>();
-  useTabBarScrollEffect();
   const { get } = useStorage();
+  useTabBarScrollEffect();
+  const { propertyId } = useParams<PropertyRouteParams>();
 
   const [property, setProperty] = useState<Property>();
-  const [details, setDetails] = useState<PropertyDetails>();
+  const [details, setDetails] = useState<PropertyDetailsData>();
 
   const [features, setFeatures] = useState<
     { label: string; value: boolean | undefined }[]

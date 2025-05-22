@@ -1,5 +1,4 @@
 import { auth, db } from "../firebase";
-import { PushNotifications } from "@capacitor/push-notifications";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -18,20 +17,12 @@ import {
   addDoc,
   collection,
 } from "firebase/firestore";
+
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
 
-export interface UserProfile {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  username: string;
-  createdAt?: Date;
-  lastSeen?: Date;
-  pushNotificationsEnabled?: boolean;
-  userRole: "User" | "Admin";
-}
+import { PushNotifications } from "@capacitor/push-notifications";
+import { UserProfile } from "../types/interfaces";
 
 export const registerUser = async (
   email: string,

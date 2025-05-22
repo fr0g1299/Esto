@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { useParams, useLocation, useHistory } from "react-router";
 import {
   IonAlert,
   IonBackButton,
@@ -21,44 +23,31 @@ import {
   IonToolbar,
   useIonToast,
 } from "@ionic/react";
-import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import {
   getPropertiesInFolder,
   removeFavoriteFolder,
   removePropertyFromFolder,
 } from "../services/favoritesService";
-import { useParams, useLocation, useHistory } from "react-router";
-import { homeOutline, trashOutline } from "ionicons/icons";
-
-import "../styles/Folder.css";
 import { hapticsHeavy } from "../services/haptics";
+import { FolderRouteParams, FavoriteProperty } from "../types/interfaces";
 
-interface RouteParams {
-  folderId: string;
-}
-
-interface FavoriteProperty {
-  id: string;
-  title: string;
-  price: number;
-  disposition: string;
-  imageUrl: string;
-  note?: string;
-}
+import { homeOutline, trashOutline } from "ionicons/icons";
+import "../styles/Folder.css";
 
 const Folder: React.FC = () => {
   const { user } = useAuth();
-  const { folderId } = useParams<RouteParams>();
-  const [properties, setProperties] = React.useState<FavoriteProperty[]>([]);
+  const { folderId } = useParams<FolderRouteParams>();
+  const location = useLocation();
   const history = useHistory();
   const [showToast] = useIonToast();
   const [loading, setLoading] = useState(true);
 
-  const location = useLocation();
   const params = new URLSearchParams(location.search);
   const name = params.get("name") || "Oblíbené položky";
   const slidingRef = useRef<HTMLIonItemSlidingElement[]>([]);
+
+  const [properties, setProperties] = useState<FavoriteProperty[]>([]);
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -114,34 +103,34 @@ const Folder: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton></IonBackButton>
           </IonButtons>
-              {name !== "Oblíbené" && (
-                <>
-                  <IonButtons slot="end" style={{ paddingRight: "15px" }}>
-                    <IonIcon
-                      icon={trashOutline}
-                      color="danger"
-                      size="large"
-                      id="delete-alert"
-                      slot="icon-only"
-                    />
-                  </IonButtons>
-                  <IonAlert
-                    trigger="delete-alert"
-                    header="Opravdu chcete smazat tuto složku?"
-                    buttons={[
-                      {
-                        text: "Ne",
-                        role: "cancel",
-                      },
-                      {
-                        text: "Ano",
-                        role: "confirm",
-                        handler: () => handleRemove(),
-                      },
-                    ]}
-                  />
-                </>
-              )}
+          {name !== "Oblíbené" && (
+            <>
+              <IonButtons slot="end" style={{ paddingRight: "15px" }}>
+                <IonIcon
+                  icon={trashOutline}
+                  color="danger"
+                  size="large"
+                  id="delete-alert"
+                  slot="icon-only"
+                />
+              </IonButtons>
+              <IonAlert
+                trigger="delete-alert"
+                header="Opravdu chcete smazat tuto složku?"
+                buttons={[
+                  {
+                    text: "Ne",
+                    role: "cancel",
+                  },
+                  {
+                    text: "Ano",
+                    role: "confirm",
+                    handler: () => handleRemove(),
+                  },
+                ]}
+              />
+            </>
+          )}
           <IonTitle>{name}</IonTitle>
         </IonToolbar>
       </IonHeader>

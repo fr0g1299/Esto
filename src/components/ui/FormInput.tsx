@@ -1,5 +1,5 @@
-import { IonInput, IonInputPasswordToggle } from "@ionic/react";
 import { useRef } from "react";
+import { IonInput, IonInputPasswordToggle } from "@ionic/react";
 
 interface Props<T extends string | number> {
   label: string;

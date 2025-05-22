@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { useHistory } from "react-router";
 import {
   IonPage,
   IonContent,
@@ -17,35 +19,38 @@ import {
   IonImg,
   IonLoading,
 } from "@ionic/react";
+import { Capacitor } from "@capacitor/core";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { Preferences } from "@capacitor/preferences";
+import { useAuth } from "../hooks/useAuth";
 import { useStorage } from "../hooks/useStorage";
-import { useEffect, useRef, useState } from "react";
 import {
   deleteUserAccount,
   getUserDocument,
   updateUserDocument,
 } from "../services/userService";
-import { useAuth } from "../hooks/useAuth";
-import { Preferences } from "@capacitor/preferences";
+import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
+import { setNotificationPreference } from "../services/notificationsService";
+import { changeUserPassword, logoutUser } from "../services/authService";
+
 import FormInput from "../components/ui/FormInput";
+
 import { useMaskito } from "@maskito/react";
 import { MaskitoOptions, maskitoTransform } from "@maskito/core";
-import "../styles/Settings.css";
 import { arrowBackOutline, mailOutline } from "ionicons/icons";
-import { changeUserPassword, logoutUser } from "../services/authService";
-import { useHistory } from "react-router";
-import { StatusBar, Style } from "@capacitor/status-bar";
-import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
-import { Capacitor } from "@capacitor/core";
-import { setNotificationPreference } from "../services/notificationsService";
+import "../styles/Settings.css";
 
 const Settings: React.FC = () => {
   const { user, role } = useAuth();
   const history = useHistory();
+  const [showToast] = useIonToast();
+  const [loading, setLoading] = useState(false);
+
+  const modal = useRef<HTMLIonModalElement>(null);
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(false);
   const { get, set, ready } = useStorage();
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
-  const modal = useRef<HTMLIonModalElement>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean>(true);
   const [oldPassword, setOldPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
@@ -54,8 +59,6 @@ const Settings: React.FC = () => {
   const [errorMessageConfirm, setErrorMessageConfirm] = useState("");
   const [deleteCheck, setDeleteCheck] = useState<string>("");
   const [saveButtonMessage, setSaveButtonMessage] = useState("");
-  const [showToast] = useIonToast();
-  const [loading, setLoading] = useState(false);
 
   const phoneMaskOptions: MaskitoOptions = {
     mask: [
@@ -156,6 +159,7 @@ const Settings: React.FC = () => {
       console.error("Error updating notification preference:", error);
     }
   };
+
   const handlePasswordChange = (e: string) => {
     const pass = e;
     setNewPassword(pass);

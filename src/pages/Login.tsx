@@ -1,3 +1,5 @@
+import React, { useState } from "react";
+import { useHistory } from "react-router-dom";
 import {
   IonButton,
   IonContent,
@@ -8,16 +10,15 @@ import {
   IonNote,
   IonPage,
 } from "@ionic/react";
-import React, { useState } from "react";
 import { loginUser } from "../services/authService";
-import { useHistory } from "react-router-dom";
-import "../styles/LoginAndRegistration.css";
 import { hapticsHeavy, hapticsMedium } from "../services/haptics";
 
+import "../styles/LoginAndRegistration.css";
+
 const Login: React.FC = () => {
+  const history = useHistory();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const history = useHistory();
   const [isEmailValid, setIsEmailValid] = useState<boolean | undefined>(
     undefined
   );
@@ -74,10 +75,6 @@ const Login: React.FC = () => {
     return emailRegex.test(email);
   };
 
-  const markTouched = () => {
-    setIsTouched(true);
-  };
-
   return (
     <IonPage className="login-page">
       <IonContent fullscreen>
@@ -100,7 +97,7 @@ const Login: React.FC = () => {
                 labelPlacement="stacked"
                 errorText="Špatný email"
                 onIonInput={(event) => handleEmailChange(event)}
-                onIonBlur={() => markTouched()}
+                onIonBlur={() => setIsTouched(true)}
               ></IonInput>
               <IonInput
                 className={`${isPassValid && "ion-valid"} ${

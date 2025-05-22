@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Redirect, Route } from "react-router-dom";
+import { IonReactRouter } from "@ionic/react-router";
 import {
   IonApp,
   IonRouterOutlet,
@@ -9,9 +11,13 @@ import {
   IonIcon,
   IonLabel,
 } from "@ionic/react";
-import { IonReactRouter } from "@ionic/react-router";
-import { useEffect, useState } from "react";
-import { useStorage } from "./hooks/useStorage";
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
+import { PushNotifications } from "@capacitor/push-notifications";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { SafeArea } from "capacitor-plugin-safe-area";
+
 import Home from "./pages/Home";
 import SearchMap from "./pages/SearchMap";
 import Search from "./pages/Search";
@@ -22,12 +28,26 @@ import Create from "./pages/Create";
 import SearchResults from "./pages/SearchResults";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { home, search, albums, mapOutline, settings } from "ionicons/icons";
+import Chat from "./pages/Chat";
+import Chats from "./pages/Chats";
+import Folder from "./pages/Folder";
+import UserListings from "./pages/UserListings";
+import EditProperty from "./pages/EditProperty";
+import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
+import OfflineDetails from "./pages/Offline";
+
+import { useAuth } from "./hooks/useAuth";
+import { useStorage } from "./hooks/useStorage";
+
+import { setNotificationPreference } from "./services/notificationsService";
+
+import PrivateRoute from "./components/PrivateRoute";
+import AdminDashboard from "./components/AdminDashboard";
 import RippleButton from "./components/ui/RippleButton";
 import { AuthProvider } from "./contexts/AuthProvider";
-import { Preferences } from "@capacitor/preferences";
-import { PushNotifications } from "@capacitor/push-notifications";
-import { ScreenOrientation } from "@capacitor/screen-orientation";
+
+import { home, search, albums, mapOutline, settings } from "ionicons/icons";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -37,7 +57,7 @@ import "@ionic/react/css/normalize.css";
 import "@ionic/react/css/structure.css";
 import "@ionic/react/css/typography.css";
 
-/* Optional CSS utils that can be commented out */
+/* Ionic CSS utils */
 import "@ionic/react/css/padding.css";
 import "@ionic/react/css/float-elements.css";
 import "@ionic/react/css/text-alignment.css";
@@ -45,36 +65,13 @@ import "@ionic/react/css/text-transformation.css";
 import "@ionic/react/css/flex-utils.css";
 import "@ionic/react/css/display.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-// import '@ionic/react/css/palettes/dark.always.css';
+// Ionic Dark Mode
 import "@ionic/react/css/palettes/dark.class.css";
-// import "@ionic/react/css/palettes/dark.system.css";
 
 /* Theme variables */
 import "./theme/variables.css";
-import "./styles/global.css";
+import "./theme/global.css";
 import "./styles/App.css";
-import PrivateRoute from "./components/PrivateRoute";
-import Chat from "./pages/Chat";
-import Chats from "./pages/Chats";
-import Folder from "./pages/Folder";
-import UserListings from "./pages/UserListings";
-import EditProperty from "./pages/EditProperty";
-import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
-import { useAuth } from "./hooks/useAuth";
-import { setNotificationPreference } from "./services/notificationsService";
-import { SafeArea } from "capacitor-plugin-safe-area";
-import { StatusBar, Style } from "@capacitor/status-bar";
-import AdminDashboard from "./components/AdminDashboard";
-import { Capacitor } from "@capacitor/core";
-import OfflineDetails from "./pages/Offline";
 
 setupIonicReact();
 

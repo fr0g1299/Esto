@@ -10,8 +10,12 @@ import {
   orderBy,
   Timestamp,
   getDoc,
+  where,
 } from "firebase/firestore";
+import { User } from "firebase/auth";
+
 import { sendMessageNotification } from "./notificationsService";
+import { Chat } from "../types/interfaces";
 
 const generateChatId = (user1: string, user2: string, propertyId: string) => {
   const sortedUsers = [user1, user2].sort();
@@ -120,4 +124,51 @@ export const subscribeToMessages = (
     });
     callback(messages);
   });
+};
+
+export const listenToChats = (
+  user: User | null,
+  setChats: (chats: Chat[]) => void,
+  setLoading: (loading: boolean) => void
+) => {
+  if (!user) return () => {};
+
+  const chatsRef = collection(db, "chats");
+  const q = query(
+    chatsRef,
+    where("participants", "array-contains", user.uid),
+    orderBy("lastTimestamp", "desc")
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const chatsData = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const participantDetails = data.participantDetails || {};
+
+      // Remove current user from participants
+      const otherUserId = Object.keys(participantDetails).find(
+        (id) => id !== user.uid
+      );
+
+      // Get other user's details
+      const otherUser = otherUserId
+        ? participantDetails[otherUserId]
+        : { firstName: "Chat", lastName: "" };
+
+      return {
+        id: doc.id,
+        title: data.title as string,
+        propertyId: data.propertyId as string,
+        lastMessage: data.lastMessage as string,
+        imageUrl: data.imageUrl,
+        otherUserFirstName: otherUser.firstName,
+        otherUserLastName: otherUser.lastName,
+      };
+    });
+
+    setChats(chatsData);
+    setLoading(false);
+  });
+
+  return unsubscribe;
 };

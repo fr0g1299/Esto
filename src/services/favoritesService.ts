@@ -1,3 +1,4 @@
+import { db } from "../firebase";
 import {
   collection,
   doc,
@@ -10,28 +11,12 @@ import {
   updateDoc,
   increment,
 } from "firebase/firestore";
-import { db } from "../firebase";
 
-export interface FavoriteFolder {
-  id: string;
-  title: string;
-  propertyCount: number;
-}
-
-export interface FavoriteProperty {
-  id: string;
-  title: string;
-  price: number;
-  disposition: string;
-  imageUrl: string;
-  note?: string;
-}
-
-export interface SavedFilter {
-  id: string;
-  title: string;
-  criteria: string;
-}
+import {
+  FavoriteFolder,
+  FavoriteProperty,
+  SavedFilter,
+} from "../types/interfaces";
 
 // Get all favorite folders for a user
 export const getFavoriteFolders = async (

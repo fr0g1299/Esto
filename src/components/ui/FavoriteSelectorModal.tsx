@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import {
   IonModal,
   IonHeader,
@@ -18,18 +19,18 @@ import {
   IonItemDivider,
   useIonViewDidEnter,
 } from "@ionic/react";
-import { closeOutline, add } from "ionicons/icons";
-import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
   addPropertyToFolder,
   createFavoriteFolder,
   getFavoriteFolders,
-  FavoriteFolder,
   getFoldersContainingProperty,
   removePropertyFromFolder,
 } from "../../services/favoritesService";
-import "./FavoriteSelectorModal.css";
+import { FavoriteFolder } from "../../types/interfaces";
+
+import { closeOutline, add } from "ionicons/icons";
+import "./styles/FavoriteSelectorModal.css";
 
 interface Props {
   isOpen: boolean;
@@ -68,7 +69,7 @@ const FavoriteSelectorModal: React.FC<Props> = ({
     );
     setFolders(all);
     setSelectedFolders(alreadySaved);
-    setInitialFolders(alreadySaved); //TODO: this fires on mount of propertydetails page
+    setInitialFolders(alreadySaved);
     console.log(all, alreadySaved);
   }, [user, propertyId]);
 

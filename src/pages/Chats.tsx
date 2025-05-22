@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useHistory } from "react-router";
 import {
   IonContent,
   IonHeader,
@@ -13,29 +15,11 @@ import {
   IonImg,
   IonSkeletonText,
 } from "@ionic/react";
-import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { db } from "../firebase";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  orderBy,
-} from "firebase/firestore";
-import { useHistory } from "react-router";
+import { listenToChats } from "../services/chatService";
+import { Chat } from "../types/interfaces";
 
 import "../styles/Chats.css";
-
-interface Chat {
-  id: string;
-  title: string;
-  propertyId: string;
-  lastMessage: string;
-  otherUserFirstName: string;
-  otherUserLastName: string;
-  imageUrl: string;
-}
 
 const Chats: React.FC = () => {
   const { user } = useAuth();
@@ -45,48 +29,7 @@ const Chats: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-
-    const chatsRef = collection(db, "chats");
-    const q = query(
-      chatsRef,
-      where("participants", "array-contains", user.uid),
-      orderBy("lastTimestamp", "desc")
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chatsData = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        const participantDetails = data.participantDetails || {};
-
-        // Remove current user from participants
-        const otherUserId = Object.keys(participantDetails).find(
-          (id) => id !== user.uid
-        );
-
-        // Get other user's details
-        const otherUser = otherUserId
-          ? participantDetails[otherUserId]
-          : { firstName: "Chat", lastName: "" };
-
-        console.log("Other user:", otherUser);
-        console.log("Chat data:", data);
-
-        return {
-          id: doc.id,
-          title: data.title as string,
-          propertyId: data.propertyId as string,
-          lastMessage: data.lastMessage as string,
-          imageUrl: data.imageUrl,
-          otherUserFirstName: otherUser.firstName,
-          otherUserLastName: otherUser.lastName,
-        };
-      });
-
-      setChats(chatsData);
-      setLoading(false);
-    });
-
+    const unsubscribe = listenToChats(user, setChats, setLoading);
     return () => unsubscribe();
   }, [user]);
 

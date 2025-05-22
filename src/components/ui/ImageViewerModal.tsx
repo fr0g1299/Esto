@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   IonModal,
   IonButton,
@@ -5,18 +6,17 @@ import {
   IonImg,
   useIonViewWillLeave,
 } from "@ionic/react";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Zoom, Pagination } from "swiper/modules";
-import { closeOutline, imagesOutline } from "ionicons/icons";
-import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Zoom, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/zoom";
 import "swiper/css/pagination";
 
-import "./ImageViewerModal.css";
-import { Capacitor } from "@capacitor/core";
+import { closeOutline, imagesOutline } from "ionicons/icons";
+import "./styles/ImageViewerModal.css";
 
 interface Props {
   isOpen: boolean;

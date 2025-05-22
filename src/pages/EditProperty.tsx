@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useParams, useHistory } from "react-router";
 import {
   IonPage,
   IonHeader,
@@ -26,48 +28,51 @@ import {
   IonNote,
   IonTextarea,
 } from "@ionic/react";
-import { useEffect, useState } from "react";
-import { useParams, useHistory } from "react-router";
-import { getPropertyById, updateProperty } from "../services/propertyService";
-import FormInput from "../components/ui/FormInput";
+import { useAuth } from "../hooks/useAuth";
+import { useStorage } from "../hooks/useStorage";
 import { useTabBarScrollEffect } from "../hooks/useTabBarScrollEffect";
-import { MaskitoOptions, maskitoTransform } from "@maskito/core";
+import { getPropertyById, updateProperty } from "../services/propertyService";
+import { geocodeAddress } from "../services/geocodingService";
+import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
+import {
+  UploadedImage,
+  PropertyRouteParams,
+  ImageType,
+} from "../types/interfaces";
+import {
+  dispositionOptions,
+  kitchenEquipmentOptions,
+} from "../constants/options";
+
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase";
+
+import FormInput from "../components/ui/FormInput";
 import ImageUploader from "../components/ui/ImageUploader";
 import StepperInput from "../components/ui/StepperInput";
 import ToggleChip from "../components/ui/ToggleChip";
+
+import { MaskitoOptions, maskitoTransform } from "@maskito/core";
 import { useMaskito } from "@maskito/react";
-
-import "../styles/CreateAndEdit.css";
-import { useAuth } from "../hooks/useAuth";
 import { homeOutline, lockClosedOutline } from "ionicons/icons";
-import { useStorage } from "../hooks/useStorage";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../firebase";
-import { geocodeAddress } from "../services/geocodingService";
-import { hapticsHeavy, hapticsLight, hapticsMedium } from "../services/haptics";
-
-interface RouteParams {
-  propertyId: string;
-}
-
-interface UploadedImage {
-  imageUrl: string;
-  altText?: string;
-  sortOrder?: number;
-}
-
-type ImageType = File | UploadedImage;
+import "../styles/CreateAndEdit.css";
+import { useChipOptions } from "../hooks/useChipOptions";
 
 const EditProperty: React.FC = () => {
   const { user } = useAuth();
   const { get, set } = useStorage();
-  const [ownerId, setOwnerId] = useState("");
-  const { propertyId } = useParams<RouteParams>();
-  const history = useHistory();
-  useTabBarScrollEffect();
-  const [loading, setLoading] = useState(true);
-  const [loadingButton, setLoadingButton] = useState(true);
   const [showToast] = useIonToast();
+  useTabBarScrollEffect();
+  const removeProperty = httpsCallable(functions, "removeProperty");
+
+  // States for chips
+  const chipOptions = useChipOptions();
+
+  const [ownerId, setOwnerId] = useState("");
+  const { propertyId } = useParams<PropertyRouteParams>();
+  const history = useHistory();
+  const [loading, setLoading] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(false);
   const [deleteCheck, setDeleteCheck] = useState<string>("");
 
   // States for property details, that can be filtered
@@ -81,18 +86,6 @@ const EditProperty: React.FC = () => {
     "Byt" | "Apartmán" | "Dům" | "Vila" | "Chata" | "Chalupa" | ""
   >("");
   const [disposition, setDisposition] = useState("");
-
-  // States for chips
-  const [garage, setGarage] = useState(false);
-  const [elevator, setElevator] = useState(false);
-  const [gasConnection, setGasConnection] = useState(false);
-  const [threePhaseElectricity, setThreePhaseElectricity] = useState(false);
-  const [basement, setBasement] = useState(false);
-  const [furnished, setFurnished] = useState(false);
-  const [balcony, setBalcony] = useState(false);
-  const [garden, setGarden] = useState(false);
-  const [solarPanels, setSolarPanels] = useState(false);
-  const [pool, setPool] = useState(false);
 
   // States for property details, that are not filtered
   const [yearBuilt, setYearBuilt] = useState(0);
@@ -152,65 +145,6 @@ const EditProperty: React.FC = () => {
     },
   ];
 
-  const chipOptions: {
-    label: string;
-    checked: boolean;
-    setter: React.Dispatch<React.SetStateAction<boolean>>;
-  }[] = [
-    { label: "Garáž", checked: garage, setter: setGarage },
-    { label: "Výtah", checked: elevator, setter: setElevator },
-    {
-      label: "Plynové připojení",
-      checked: gasConnection,
-      setter: setGasConnection,
-    },
-    {
-      label: "Třífázová elektřina",
-      checked: threePhaseElectricity,
-      setter: setThreePhaseElectricity,
-    },
-    { label: "Sklep", checked: basement, setter: setBasement },
-    { label: "Zařízený", checked: furnished, setter: setFurnished },
-    { label: "Balkón", checked: balcony, setter: setBalcony },
-    { label: "Bazén", checked: pool, setter: setPool },
-    { label: "Zahrada", checked: garden, setter: setGarden },
-    { label: "Solární panely", checked: solarPanels, setter: setSolarPanels },
-  ];
-
-  const dispositionOptions = [
-    "1+kk",
-    "1+1",
-    "2+kk",
-    "2+1",
-    "3+kk",
-    "3+1",
-    "4+kk",
-    "4+1",
-    "5+kk",
-    "5+1",
-    "6+kk",
-    "6+1",
-    "7+kk",
-    "7+1",
-    "Atypický",
-  ];
-
-  const kitchenEquipmentOptions = [
-    "Lednice",
-    "Sporák",
-    "Indukční deska",
-    "Mikrovlnná trouba",
-    "Trouba",
-    "Myčka",
-    "Mrazák",
-    "Kuchyňské náčiní",
-    "Hrnce a pánve",
-    "Kávovar",
-    "Topinkovač",
-    "Rychlovarná konvice",
-    "Mixér",
-  ];
-  const removeProperty = httpsCallable(functions, "removeProperty");
 
   useEffect(() => {
     setLoading(true);
@@ -226,16 +160,16 @@ const EditProperty: React.FC = () => {
         setCity(data.city);
         setType(data.type);
         setDisposition(data.disposition);
-        setGarage(data.garage);
-        setElevator(data.elevator);
-        setGasConnection(data.gasConnection);
-        setThreePhaseElectricity(data.threePhaseElectricity);
-        setBasement(data.basement);
-        setFurnished(data.furnished);
-        setBalcony(data.balcony);
-        setGarden(data.garden);
-        setSolarPanels(data.solarPanels);
-        setPool(data.pool);
+        chipOptions[0].setter(data.garage);
+        chipOptions[1].setter(data.elevator);
+        chipOptions[2].setter(data.gasConnection);
+        chipOptions[3].setter(data.threePhaseElectricity);
+        chipOptions[4].setter(data.basement);
+        chipOptions[5].setter(data.furnished);
+        chipOptions[6].setter(data.balcony);
+        chipOptions[7].setter(data.garden);
+        chipOptions[8].setter(data.solarPanels);
+        chipOptions[9].setter(data.pool);
         setYearBuilt(data.yearBuilt);
         setFloors(data.floors);
         setRooms(data.rooms);
@@ -261,12 +195,13 @@ const EditProperty: React.FC = () => {
     };
 
     loadProperty();
+    // eslint-disable-next-line
   }, [propertyId]);
 
   const handleSave = async () => {
     if (!user) return;
 
-    if (!garden) {
+    if (!chipOptions[8].checked) {
       setGardenSize("");
     }
     if (type === "") {
@@ -296,16 +231,16 @@ const EditProperty: React.FC = () => {
           type,
           disposition,
           geolocation: { latitude, longitude },
-          garage,
-          elevator,
-          gasConnection,
-          threePhaseElectricity,
-          basement,
-          furnished,
-          balcony,
-          garden,
-          solarPanels,
-          pool,
+          garage: chipOptions[0].checked,
+          elevator: chipOptions[1].checked,
+          gasConnection: chipOptions[2].checked,
+          threePhaseElectricity: chipOptions[3].checked,
+          basement: chipOptions[4].checked,
+          furnished: chipOptions[5].checked,
+          balcony: chipOptions[6].checked,
+          garden: chipOptions[7].checked,
+          solarPanels: chipOptions[8].checked,
+          pool: chipOptions[9].checked,
           status: availability ? "Available" : "Sold",
         },
         {
@@ -595,7 +530,7 @@ const EditProperty: React.FC = () => {
                   value={gardenSizeString}
                   onChange={setGardenSize}
                   type="number"
-                  disabled={!garden}
+                  disabled={!chipOptions[8].checked}
                 />
               </IonItem>
               <IonItem lines="none">
@@ -667,7 +602,7 @@ const EditProperty: React.FC = () => {
                   helperText="Zaškrtněte, pokud je nemovitost dostupná, odškrtněte, pokud je prodaná/zamluvená"
                   onIonChange={(e) => {
                     hapticsLight();
-                    setAvailability(e.detail.value);
+                    setAvailability(e.detail.checked);
                   }}
                 >
                   <strong>Stav:</strong>
@@ -690,7 +625,6 @@ const EditProperty: React.FC = () => {
             >
               Uložit změny
             </IonButton>
-            {/* TODO: make this dynamic */}
             {(images.length < 3 ||
               !title ||
               !price ||
